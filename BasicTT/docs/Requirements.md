@@ -7,6 +7,14 @@
 - Dynamic scene setup based on code configurations
 - Player positioned dynamically one meter from the table
 - AI opponent on opposite side
+- Table must be precisely scaled to regulation dimensions:
+  - Length: 2.74m (9 feet)
+  - Width: 1.525m (5 feet)
+  - Height: 0.76m (30 inches)
+  - Playing surface must be exactly at regulation height
+  - Net height: 15.25cm (6 inches)
+  - Table must be centered at (0,0,0) in world space
+  - Model scaling must be calculated at runtime to match dimensions regardless of source model size
 
 ### 1.2 Player Interaction
 - Right hand controller controls paddle

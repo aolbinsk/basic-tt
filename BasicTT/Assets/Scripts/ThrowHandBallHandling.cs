@@ -46,7 +46,7 @@ public class ThrowHandBallHandling : MonoBehaviour
     private void ConfigureRigidbody()
     {
         // Set mass based on regulation ball mass
-        ballRigidbody.mass = TableTennisPhysicsConfig.BALL_MASS_GRAMS / 1000f;  // Convert to kg
+        ballRigidbody.mass = TableTennisPhysicsConfig.BallMassGrams / 1000f;  // Convert to kg
         ballRigidbody.interpolation = RigidbodyInterpolation.Interpolate;
         ballRigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
     }
@@ -76,7 +76,7 @@ public class ThrowHandBallHandling : MonoBehaviour
         isGripped = false;
         ballRigidbody.isKinematic = false;
 
-        if (!(controllerVelocity.magnitude > TableTennisPhysicsConfig.BALL_MIN_THROW_VELOCITY)) return;
+        if (!(controllerVelocity.magnitude > TableTennisPhysicsConfig.BallMinThrowVelocity)) return;
         var throwVelocity = CalculateReleaseVelocity();
         ApplyThrowForce(throwVelocity);
     }
@@ -91,10 +91,10 @@ public class ThrowHandBallHandling : MonoBehaviour
         var combinedVelocity = Vector3.Lerp(controllerVelocity, averageVelocity, 0.3f);
         
         // Scale the velocity based on mass and desired throw speed
-        var scaledVelocity = combinedVelocity * (TableTennisPhysicsConfig.BALL_MASS_GRAMS / 1000f);
+        var scaledVelocity = combinedVelocity * (TableTennisPhysicsConfig.BallMassGrams / 1000f);
 
         // Clamp the magnitude to the maximum allowed velocity
-        var magnitude = Mathf.Min(scaledVelocity.magnitude, TableTennisPhysicsConfig.BALL_MAX_THROW_VELOCITY);
+        var magnitude = Mathf.Min(scaledVelocity.magnitude, TableTennisPhysicsConfig.BallMaxThrowVelocity);
         return scaledVelocity.normalized * magnitude;
     }
 
@@ -120,7 +120,7 @@ public class ThrowHandBallHandling : MonoBehaviour
 
     private void UpdateBallPosition()
     {
-        var holdOffset = leftController.up * (TableTennisPhysicsConfig.BALL_DIAMETER_MM / 1000f * 2.5f);
+        var holdOffset = leftController.up * (TableTennisPhysicsConfig.BallDiameterMm / 1000f * 2.5f);
         transform.position = leftController.position + holdOffset;
     }
 
@@ -130,9 +130,9 @@ public class ThrowHandBallHandling : MonoBehaviour
         var newControllerVelocity = (leftController.position - previousControllerPosition) / Time.deltaTime;
         
         // Apply smoothing for extreme values
-        if (newControllerVelocity.magnitude > TableTennisPhysicsConfig.BALL_MAX_THROW_VELOCITY * 2f)
+        if (newControllerVelocity.magnitude > TableTennisPhysicsConfig.BallMaxThrowVelocity * 2f)
         {
-            newControllerVelocity = newControllerVelocity.normalized * (TableTennisPhysicsConfig.BALL_MAX_THROW_VELOCITY * 2f);
+            newControllerVelocity = newControllerVelocity.normalized * (TableTennisPhysicsConfig.BallMaxThrowVelocity * 2f);
         }
 
         // Update velocity history
