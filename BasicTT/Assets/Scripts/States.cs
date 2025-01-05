@@ -9,6 +9,7 @@ public class PaddleState
     public Quaternion Rotation;
     public Vector3 Velocity;
     public Vector3 AngularVelocity;
+    public Collider Collider; // Reference to the paddle's collider
 }
 
 /// <summary>
@@ -30,4 +31,6 @@ public struct CollisionData
     public bool Detected;
     public Vector3 Point;
     public Vector3 Normal;
+    public float TimeOfImpact;
+    public Collider Collider;
 }

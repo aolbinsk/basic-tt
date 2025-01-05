@@ -61,34 +61,58 @@ public class PhysicsManager : MonoBehaviour
 
     private void ProcessPhysicsSubStep(float dt)
     {
-        // If the ball is being held, skip physics updates
         if (_ballController.IsHeld())
         {
             return;
         }
 
-        // Get current paddle state
-        var paddleState = _paddleController.GetCurrentState();
+        float remainingTime = dt;
 
-        // Collision detection with paddle
-        var paddleCollision = CollisionDetectionSystem.DetectCollision(_currentBallState, paddleState, dt);
-
-        if (paddleCollision.Detected)
+        while (remainingTime > 0f)
         {
-            // Collision resolution with paddle
-            CollisionResolutionSystem.ResolveCollision(ref _currentBallState, paddleState, paddleCollision);
+            // Get current paddle state
+            var paddleState = _paddleController.GetCurrentState();
+
+            // Detect collision with paddle
+            CollisionData paddleCollision = _collisionDetector.DetectCollision(_currentBallState, paddleState, remainingTime);
+
+            // Detect collision with environment
+            CollisionData environmentCollision = _collisionDetector.DetectEnvironmentCollision(_currentBallState, remainingTime);
+
+            // Determine the earliest collision
+            CollisionData earliestCollision = GetEarliestCollision(paddleCollision, environmentCollision);
+
+            if (earliestCollision.Detected)
+            {
+                float timeToCollision = earliestCollision.TimeOfImpact;
+
+                // Integrate up to collision time
+                _ballPhysics.Integrate(ref _currentBallState, timeToCollision);
+
+                // Resolve collision
+                _collisionResolver.ResolveCollision(
+                    ref _currentBallState, 
+                    earliestCollision.Collider == paddleState.Collider ? paddleState : null, 
+                    earliestCollision);
+
+                remainingTime -= timeToCollision;
+            }
+            else
+            {
+                // No collisions detected, integrate the remaining time
+                _ballPhysics.Integrate(ref _currentBallState, remainingTime);
+                remainingTime = 0f;
+            }
         }
+    }
 
-        // Collision detection with environment (e.g., table)
-        var environmentCollision = _collisionDetector.DetectEnvironmentCollision(_currentBallState, dt);
-
-        if (environmentCollision.Detected)
-        {
-            // Collision resolution with the environment
-            CollisionResolutionSystem.ResolveCollision(ref _currentBallState, null, environmentCollision);
-        }
-
-        // Integrate ball physics
-        BallPhysics.Integrate(ref _currentBallState, dt);
+    // Helper method to determine the earliest collision
+    private CollisionData GetEarliestCollision(CollisionData first, CollisionData second)
+    {
+        if (!first.Detected)
+            return second;
+        if (!second.Detected)
+            return first;
+        return first.TimeOfImpact <= second.TimeOfImpact ? first : second;
     }
 }

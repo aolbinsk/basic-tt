@@ -10,6 +10,11 @@ public class BallController : MonoBehaviour
     private Vector3 _previousLeftControllerPosition;
     private BallState _currentBallState;
     private Transform _xrOriginTransform;
+    private Rigidbody _rigidbody;
+
+    // Constants for ball positioning relative to the controller
+    private static readonly Vector3 CONTROLLER_TIP_OFFSET = new(0f, 0f, 0.15f); // 15cm forward from controller
+    private static readonly Vector3 CONTROLLER_HEIGHT_OFFSET = new(0f, 0.02f, 0f); // 2cm up to avoid clipping
 
     private void Start()
     {
@@ -18,7 +23,7 @@ public class BallController : MonoBehaviour
         InitializeBallState();
 
         // Get the XR Origin's transform to track player movement
-        var xrOrigin = FindObjectOfType<Unity.XR.CoreUtils.XROrigin>();
+        var xrOrigin = FindFirstObjectByType<Unity.XR.CoreUtils.XROrigin>();
         if (xrOrigin != null)
         {
             _xrOriginTransform = xrOrigin.transform;
@@ -31,22 +36,35 @@ public class BallController : MonoBehaviour
 
     private void ConfigureBallPhysics()
     {
+        gameObject.layer = LayerMask.NameToLayer("Ball");
+
         var ballCollider = GetComponent<SphereCollider>();
         if (ballCollider == null)
         {
             ballCollider = gameObject.AddComponent<SphereCollider>();
         }
-        ballCollider.radius = TableTennisPhysicsConfig.BallDiameterMm / 2000f;
 
-        // Only add if missing 
-        var rb = GetComponent<Rigidbody>();
-        if (rb == null)
+        // Convert from mm to meters and set radius
+        float radiusInMeters = TableTennisPhysicsConfig.BallDiameterMm / 2000f;
+        ballCollider.radius = radiusInMeters;
+        Debug.Log($"Ball collider radius set to {radiusInMeters}m");
+
+        _rigidbody = GetComponent<Rigidbody>();
+        if (_rigidbody == null)
         {
-            rb = gameObject.AddComponent<Rigidbody>();
+            _rigidbody = gameObject.AddComponent<Rigidbody>();
         }
-        rb.isKinematic = true;
-        rb.useGravity = false;
-        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+
+        // Configure rigidbody
+        _rigidbody.mass = TableTennisPhysicsConfig.BallMassGrams / 1000f; // Convert to kg
+        _rigidbody.isKinematic = true;
+        _rigidbody.useGravity = false;
+        _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
+
+        // Assign physics material
+        ballCollider.material = TableTennisPhysicsConfig.instance.ballMaterial;
+        Debug.Log("Ball physics configured");
     }
 
     private void InitializeBallState()
@@ -73,16 +91,27 @@ public class BallController : MonoBehaviour
             {
                 // Begin holding the ball
                 _isHeld = true;
+
+                // Set Rigidbody to kinematic and disable gravity
+                _rigidbody.isKinematic = true;
+                _rigidbody.useGravity = false;
+
                 _currentBallState.Velocity = Vector3.zero;
                 _currentBallState.AngularVelocity = Vector3.zero;
                 _previousLeftControllerPosition = _vrInputManager.GetFilteredLeftPosition();
             }
 
-            // Move ball to left controller position with offset in world space
-            Vector3 holdOffset = _vrInputManager.GetFilteredLeftRotation() * Vector3.up * (TableTennisPhysicsConfig.BallDiameterMm / 1000f * 2.5f);
-            Vector3 localPosition = _vrInputManager.GetFilteredLeftPosition() + holdOffset;
+            // Calculate ball position at controller tip
+            Quaternion controllerRotation = _vrInputManager.GetFilteredLeftRotation();
+            Vector3 tipOffset = controllerRotation * CONTROLLER_TIP_OFFSET;
+            Vector3 heightOffset = controllerRotation * CONTROLLER_HEIGHT_OFFSET;
+
+            // Position ball at controller tip in local space
+            Vector3 localPosition = _vrInputManager.GetFilteredLeftPosition() + tipOffset + heightOffset;
+
+            // Transform to world space
             transform.position = _xrOriginTransform.TransformPoint(localPosition);
-            transform.rotation = _xrOriginTransform.rotation * _vrInputManager.GetFilteredLeftRotation();
+            transform.rotation = _xrOriginTransform.rotation * controllerRotation;
         }
         else
         {

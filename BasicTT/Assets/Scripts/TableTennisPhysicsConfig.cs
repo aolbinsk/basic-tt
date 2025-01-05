@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Central configuration for all table tennis physics and dimensions
+/// Central configuration for all table tennis physics and dimensions.
 /// </summary>
 public class TableTennisPhysicsConfig : MonoBehaviour
 {
@@ -31,7 +31,7 @@ public class TableTennisPhysicsConfig : MonoBehaviour
     [SerializeField] public PhysicsMaterial tableMaterial;
     [SerializeField] public PhysicsMaterial paddleMaterial;
     [SerializeField] public PhysicsMaterial ballMaterial;
-    [SerializeField] public PhysicsMaterial netMaterial; // Added net material
+    [SerializeField] public PhysicsMaterial netMaterial;
 
     [Header("Bounce Properties")]
     [Range(0.1f, 1.0f)]
@@ -39,15 +39,13 @@ public class TableTennisPhysicsConfig : MonoBehaviour
     [Range(0.1f, 1.0f)]
     public float paddleBounceRestitution = 0.95f;
     [Range(0.1f, 1.0f)]
-    public float netBounceRestitution = 0.3f; // Added net bounce restitution
+    public float netBounceRestitution = 0.3f;
 
     [Header("Paddle Rubber Properties")]
     [Range(0.1f, 1.0f)]
-    public float paddleRubberBounciness = 0.95f;
-
+    public float paddleRubberBounciness = 0.98f;
     [Range(0.5f, 2.0f)]
     public float paddleThrowMultiplier = 1.0f;
-
     [Range(0.5f, 2.0f)]
     public float paddleSpinMultiplier = 1.0f;
 
@@ -71,19 +69,30 @@ public class TableTennisPhysicsConfig : MonoBehaviour
     [Header("Spin and Friction")]
     [Range(0f, 1f)]
     public float tableFriction = 0.2f;
-    public const float SpinTransferCoefficient = 0.5f; // Coefficient for spin transfer during collisions
+    public const float SpinTransferCoefficient = 0.5f;
+
+    [Header("Layer Masks")]
+    public static int PaddleLayerMask;
+    public static int EnvironmentLayerMask;
 
     private void Awake()
     {
         if (instance == null)
         {
             instance = this;
+            InitializeLayerMasks();
             InitializePhysicsMaterials();
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+    
+    private void InitializeLayerMasks()
+    {
+        PaddleLayerMask = LayerMask.GetMask("Paddle");
+        EnvironmentLayerMask = LayerMask.GetMask("Table", "Floor", "Walls", "Ceiling", "Net");
     }
 
     private void InitializePhysicsMaterials()
@@ -96,12 +105,13 @@ public class TableTennisPhysicsConfig : MonoBehaviour
             tableMaterial.staticFriction = 0.2f;
         }
 
-        // Paddle material  
+        // Paddle material
         if (paddleMaterial != null)
         {
             paddleMaterial.bounciness = paddleRubberBounciness;
             paddleMaterial.dynamicFriction = 0.6f;
             paddleMaterial.staticFriction = 0.6f;
+            Debug.Log($"Paddle material bounciness set to: {paddleRubberBounciness}");
         }
 
         // Ball material

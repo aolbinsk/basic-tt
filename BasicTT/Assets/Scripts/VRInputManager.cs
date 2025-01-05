@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System.Collections.Generic;
-using System.Linq;
+using Filters;
 
 /// <summary>
 /// Manages VR input and provides filtered controller data.
@@ -14,25 +13,21 @@ public class VRInputManager : MonoBehaviour
     [SerializeField] private InputActionReference rightControllerPositionAction;
     [SerializeField] private InputActionReference rightControllerRotationAction;
     [SerializeField] private InputActionReference rightControllerGripAction;
-    [SerializeField] private int positionHistorySize = 5;
+    [SerializeField] private string rightFilterType = "None"; // Options: "MovingAverage", "Kalman", "None"
 
     [Header("Left Controller Input Settings")]
     [SerializeField] private InputActionReference leftControllerPositionAction;
     [SerializeField] private InputActionReference leftControllerRotationAction;
     [SerializeField] private InputActionReference leftControllerGripAction;
+    [SerializeField] private string leftFilterType = "None"; // Options: "MovingAverage", "Kalman", "None"
 
-    private readonly Queue<Vector3> _rightPositionHistory = new();
-    private readonly Queue<Quaternion> _rightRotationHistory = new();
-    private Vector3 _filteredRightPosition;
-    private Quaternion _filteredRightRotation;
-
-    private readonly Queue<Vector3> _leftPositionHistory = new();
-    private readonly Queue<Quaternion> _leftRotationHistory = new();
-    private Vector3 _filteredLeftPosition;
-    private Quaternion _filteredLeftRotation;
+    private IFilter<Vector3> _rightPositionFilter;
+    private IFilter<Quaternion> _rightRotationFilter;
+    private IFilter<Vector3> _leftPositionFilter;
+    private IFilter<Quaternion> _leftRotationFilter;
 
     public bool leftGripPressed { get; private set; }
-    public bool RightGripPressed { get; private set; }
+    public bool rightGripPressed { get; private set; }
 
     private void Awake()
     {
@@ -40,6 +35,7 @@ public class VRInputManager : MonoBehaviour
         {
             instance = this;
             InitializeInput();
+            InitializeFilters();
         }
         else
         {
@@ -66,6 +62,47 @@ public class VRInputManager : MonoBehaviour
         Debug.Log("Input initialized");
     }
 
+    private void InitializeFilters()
+    {
+        int filterWindowSize = 5; // Default window size for MovingAverage filters
+
+        // Initialize right controller filters
+        if (rightFilterType == "Kalman")
+        {
+            _rightPositionFilter = new KalmanFilterVector3();
+            _rightRotationFilter = new KalmanFilterQuaternion();
+        }
+        else if (rightFilterType == "None")
+        {
+            _rightPositionFilter = new PassThroughFilterVector3();
+            _rightRotationFilter = new PassThroughFilterQuaternion();
+        }
+        else // Default to Moving Average
+        {
+            _rightPositionFilter = new MovingAverageFilterVector3(filterWindowSize);
+            _rightRotationFilter = new MovingAverageFilterQuaternion(filterWindowSize);
+        }
+
+        // Initialize left controller filters
+        if (leftFilterType == "Kalman")
+        {
+            _leftPositionFilter = new KalmanFilterVector3();
+            _leftRotationFilter = new KalmanFilterQuaternion();
+        }
+        else if (leftFilterType == "None")
+        {
+            _leftPositionFilter = new PassThroughFilterVector3();
+            _leftRotationFilter = new PassThroughFilterQuaternion();
+        }
+        else // Default to Moving Average
+        {
+            _leftPositionFilter = new MovingAverageFilterVector3(filterWindowSize);
+            _leftRotationFilter = new MovingAverageFilterQuaternion(filterWindowSize);
+        }
+
+        Debug.Log("Filters initialized");
+    }
+
     private void OnDestroy()
     {
         if (leftControllerGripAction != null)
@@ -84,10 +121,7 @@ public class VRInputManager : MonoBehaviour
     private void Update()
     {
         UpdateRightControllerData();
-        ApplyRightSmoothing();
-
         UpdateLeftControllerData();
-        ApplyLeftSmoothing();
     }
 
     private void UpdateRightControllerData()
@@ -95,36 +129,18 @@ public class VRInputManager : MonoBehaviour
         Vector3 currentPosition = rightControllerPositionAction.action.ReadValue<Vector3>();
         Quaternion currentRotation = rightControllerRotationAction.action.ReadValue<Quaternion>();
 
-        _rightPositionHistory.Enqueue(currentPosition);
-        _rightRotationHistory.Enqueue(currentRotation);
-
-        if (_rightPositionHistory.Count > positionHistorySize)
-            _rightPositionHistory.Dequeue();
-
-        if (_rightRotationHistory.Count > positionHistorySize)
-            _rightRotationHistory.Dequeue();
-    }
-
-    private void ApplyRightSmoothing()
-    {
-        // Average positions
-        Vector3 sumPositions = Vector3.zero;
-        foreach (var pos in _rightPositionHistory)
-            sumPositions += pos;
-        _filteredRightPosition = sumPositions / _rightPositionHistory.Count;
-
-        // Average rotations using quaternion averaging
-        _filteredRightRotation = AverageQuaternions(_rightRotationHistory);
+        _rightPositionFilter.Update(currentPosition);
+        _rightRotationFilter.Update(currentRotation);
     }
 
     public Vector3 GetFilteredRightPosition()
     {
-        return _filteredRightPosition;
+        return _rightPositionFilter.Update(rightControllerPositionAction.action.ReadValue<Vector3>());
     }
 
     public Quaternion GetFilteredRightRotation()
     {
-        return _filteredRightRotation;
+        return _rightRotationFilter.Update(rightControllerRotationAction.action.ReadValue<Quaternion>());
     }
 
     private void UpdateLeftControllerData()
@@ -132,36 +148,18 @@ public class VRInputManager : MonoBehaviour
         Vector3 currentPosition = leftControllerPositionAction.action.ReadValue<Vector3>();
         Quaternion currentRotation = leftControllerRotationAction.action.ReadValue<Quaternion>();
 
-        _leftPositionHistory.Enqueue(currentPosition);
-        _leftRotationHistory.Enqueue(currentRotation);
-
-        if (_leftPositionHistory.Count > positionHistorySize)
-            _leftPositionHistory.Dequeue();
-
-        if (_leftRotationHistory.Count > positionHistorySize)
-            _leftRotationHistory.Dequeue();
-    }
-
-    private void ApplyLeftSmoothing()
-    {
-        // Average positions
-        Vector3 sumPositions = Vector3.zero;
-        foreach (var pos in _leftPositionHistory)
-            sumPositions += pos;
-        _filteredLeftPosition = sumPositions / _leftPositionHistory.Count;
-
-        // Average rotations using quaternion averaging
-        _filteredLeftRotation = AverageQuaternions(_leftRotationHistory);
+        _leftPositionFilter.Update(currentPosition);
+        _leftRotationFilter.Update(currentRotation);
     }
 
     public Vector3 GetFilteredLeftPosition()
     {
-        return _filteredLeftPosition;
+        return _leftPositionFilter.Update(leftControllerPositionAction.action.ReadValue<Vector3>());
     }
 
     public Quaternion GetFilteredLeftRotation()
     {
-        return _filteredLeftRotation;
+        return _leftRotationFilter.Update(leftControllerRotationAction.action.ReadValue<Quaternion>());
     }
 
     private void OnLeftGripPressed(InputAction.CallbackContext context)
@@ -176,53 +174,11 @@ public class VRInputManager : MonoBehaviour
 
     private void OnRightGripPressed(InputAction.CallbackContext context)
     {
-        RightGripPressed = true;
+        rightGripPressed = true;
     }
 
     private void OnRightGripReleased(InputAction.CallbackContext context)
     {
-        RightGripPressed = false;
-    }
-
-    public Vector3 GetLeftControllerVelocity()
-    {
-        // Compute velocity based on position history
-        if (_leftPositionHistory.Count < 2)
-            return Vector3.zero;
-
-        Vector3 firstPosition = _leftPositionHistory.Peek();
-        Vector3 lastPosition = _filteredLeftPosition;
-        float deltaTime = Time.deltaTime * (_leftPositionHistory.Count - 1);
-
-        return (lastPosition - firstPosition) / deltaTime;
-    }
-
-    private Quaternion AverageQuaternions(IEnumerable<Quaternion> rotations)
-    {
-        Quaternion average = new Quaternion(0, 0, 0, 0);
-        foreach (var rotation in rotations)
-        {
-            if (Quaternion.Dot(rotation, average) > 0)
-            {
-                average.x += rotation.x;
-                average.y += rotation.y;
-                average.z += rotation.z;
-                average.w += rotation.w;
-            }
-            else
-            {
-                average.x -= rotation.x;
-                average.y -= rotation.y;
-                average.z -= rotation.z;
-                average.w -= rotation.w;
-            }
-        }
-        average = new Quaternion(
-            average.x / rotations.Count(),
-            average.y / rotations.Count(),
-            average.z / rotations.Count(),
-            average.w / rotations.Count()
-        ).normalized;
-        return average;
+        rightGripPressed = false;
     }
 }

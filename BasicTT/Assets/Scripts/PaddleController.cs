@@ -4,6 +4,7 @@ using UnityEngine;
 /// Updates the paddle's position and rotation based on filtered VR input.
 /// Allows manual offset and rotation adjustment using the right controller grip button.
 /// Ensures paddle follows the player when the XR Origin moves.
+/// Uses an optimized box collider for efficient collision detection.
 /// </summary>
 public class PaddleController : MonoBehaviour
 {
@@ -15,27 +16,72 @@ public class PaddleController : MonoBehaviour
     private Rigidbody _rigidbody;
     private VRInputManager _inputManager;
     private Transform _xrOriginTransform;
+    private BoxCollider _boxCollider;
 
     private Vector3 _positionOffset = Vector3.zero;
     private Quaternion _rotationOffset = Quaternion.identity;
     private bool _isAdjusting = false;
 
+    private const float COLLIDER_THICKNESS_MULTIPLIER = 1.1f; // Slightly larger than paddle for better contact
+
     private void Start()
+    {
+        InitializeRigidbody();
+        InitializeBoxCollider();
+        InitializeInputAndTransforms();
+    }
+
+    private void InitializeRigidbody()
     {
         _rigidbody = GetComponent<Rigidbody>();
         if (_rigidbody == null)
         {
-            Debug.LogError("No Rigidbody found on paddle!");
-            return;
+            _rigidbody = gameObject.AddComponent<Rigidbody>();
         }
-
         _rigidbody.isKinematic = true;
         _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+    }
 
+    private void InitializeBoxCollider()
+    {
+        gameObject.layer = LayerMask.NameToLayer("Paddle");
+
+        // Remove any existing colliders
+        var existingColliders = GetComponents<Collider>();
+        foreach (var collider in existingColliders)
+        {
+            DestroyImmediate(collider);
+        }
+
+        // Add and configure box collider
+        _boxCollider = gameObject.AddComponent<BoxCollider>();
+        
+        // Set box collider size to match regulation paddle dimensions
+        _boxCollider.size = new Vector3(
+            TableTennisPhysicsConfig.PaddleWidthMeters,
+            TableTennisPhysicsConfig.PaddleThicknessMeters,
+            TableTennisPhysicsConfig.PaddleLengthMeters
+        );
+
+        // Adjust center to account for handle
+        _boxCollider.center = new Vector3(
+            0f, 
+            0f,
+            TableTennisPhysicsConfig.PaddleHandleLengthMeters / 2f
+        );
+
+        // Assign physics material
+        _boxCollider.material = TableTennisPhysicsConfig.instance.paddleMaterial;
+
+        Debug.Log($"Initialized paddle box collider with size: {_boxCollider.size}");
+        Debug.Log($"Paddle collider center: {_boxCollider.center}");
+    }
+
+    private void InitializeInputAndTransforms()
+    {
         _inputManager = VRInputManager.instance;
         _previousPosition = transform.position;
 
-        // Get the XR Origin's transform to track player movement
         var xrOrigin = FindFirstObjectByType<Unity.XR.CoreUtils.XROrigin>();
         if (xrOrigin != null)
         {
@@ -97,7 +143,7 @@ public class PaddleController : MonoBehaviour
 
     private void HandleManualAdjustment()
     {
-        if (_inputManager.RightGripPressed)
+        if (_inputManager.rightGripPressed)
         {
             if (!_isAdjusting)
             {
@@ -105,7 +151,7 @@ public class PaddleController : MonoBehaviour
                 // Toggle visibility of the right controller model based on the grip button
                 if (rightControllerModel != null)
                 {
-                    rightControllerModel.SetActive(_inputManager.RightGripPressed);
+                    rightControllerModel.SetActive(_inputManager.rightGripPressed);
                 }
             }
 
@@ -121,7 +167,7 @@ public class PaddleController : MonoBehaviour
                 // Toggle visibility of the right controller model based on the grip button
                 if (rightControllerModel != null)
                 {
-                    rightControllerModel.SetActive(_inputManager.RightGripPressed);
+                    rightControllerModel.SetActive(_inputManager.rightGripPressed);
                 }
                 // Print the offset values
                 Debug.Log($"Paddle Offset Position: {_positionOffset}");
@@ -137,7 +183,8 @@ public class PaddleController : MonoBehaviour
             Position = transform.position,
             Rotation = transform.rotation,
             Velocity = _velocity,
-            AngularVelocity = _angularVelocity
+            AngularVelocity = _angularVelocity,
+            Collider = _boxCollider
         };
     }
 }

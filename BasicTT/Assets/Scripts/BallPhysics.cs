@@ -10,7 +10,7 @@ public class BallPhysics
     /// </summary>
     /// <param name="state">The current state of the ball.</param>
     /// <param name="dt">The time step for the physics update.</param>
-    public static void Integrate(ref BallState state, float dt)
+    public void Integrate(ref BallState state, float dt)
     {
         // Calculate air resistance (drag)
         float airDensity = TableTennisPhysicsConfig.AirDensity;

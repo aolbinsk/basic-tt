@@ -336,10 +336,11 @@ MonoBehaviour:
   rightControllerPositionAction: {fileID: -3214089441897441917, guid: b7aa18812d300584fa2237de39c197c4, type: 3}
   rightControllerRotationAction: {fileID: 1000773185044415275, guid: b7aa18812d300584fa2237de39c197c4, type: 3}
   rightControllerGripAction: {fileID: 7471923161332669477, guid: b7aa18812d300584fa2237de39c197c4, type: 3}
-  positionHistorySize: 5
+  rightFilterType: None
   leftControllerPositionAction: {fileID: -677777243600101098, guid: b7aa18812d300584fa2237de39c197c4, type: 3}
   leftControllerRotationAction: {fileID: 1307799757864896115, guid: b7aa18812d300584fa2237de39c197c4, type: 3}
   leftControllerGripAction: {fileID: 6993531606710542276, guid: b7aa18812d300584fa2237de39c197c4, type: 3}
+  leftFilterType: None
 --- !u!1 &912243387
 GameObject:
   m_ObjectHideFlags: 0
@@ -453,6 +454,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: beda60ee63b073f4f86c519d6f282689, type: 3}
       propertyPath: m_Name
       value: Paddle
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: beda60ee63b073f4f86c519d6f282689, type: 3}
+      propertyPath: m_Layer
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: beda60ee63b073f4f86c519d6f282689, type: 3}
       propertyPath: m_TagString
@@ -1488,7 +1493,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8404871649812681847, guid: 77e7c27b2c5525e4aa8cc9f99d654486, type: 3}
       propertyPath: m_RequestedTrackingOriginMode
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 8548654640043725042, guid: 77e7c27b2c5525e4aa8cc9f99d654486, type: 3}
       propertyPath: m_IsActive
