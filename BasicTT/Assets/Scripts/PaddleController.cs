@@ -11,6 +11,7 @@ public class PaddleController : MonoBehaviour
     [SerializeField] private GameObject rightControllerModel;
 
     private Vector3 _previousPosition;
+    private Quaternion _previousRotation;
     private Vector3 _velocity;
     private Vector3 _angularVelocity;
     private Rigidbody _rigidbody;
@@ -81,6 +82,7 @@ public class PaddleController : MonoBehaviour
     {
         _inputManager = VRInputManager.instance;
         _previousPosition = transform.position;
+        _previousRotation = transform.rotation;
 
         var xrOrigin = FindFirstObjectByType<Unity.XR.CoreUtils.XROrigin>();
         if (xrOrigin != null)
@@ -129,16 +131,23 @@ public class PaddleController : MonoBehaviour
     {
         float deltaTime = Time.fixedDeltaTime;
 
+        // Calculate linear velocity
         _velocity = (transform.position - _previousPosition) / deltaTime;
 
-        // Calculate angular velocity using quaternions
-        Quaternion deltaRotation = transform.rotation * Quaternion.Inverse(_rigidbody.rotation);
-        deltaRotation.ToAngleAxis(out var angleInDegrees, out var rotationAxis);
+        // Calculate angular velocity
+        Quaternion deltaRotation = transform.rotation * Quaternion.Inverse(_previousRotation);
+        deltaRotation.ToAngleAxis(out float angleInDegrees, out Vector3 rotationAxis);
 
-        // Convert to radians per second
+        // Handle angle wrap-around
+        if (angleInDegrees > 180f)
+            angleInDegrees -= 360f;
+
+        // Convert to angular velocity in radians per second
         _angularVelocity = rotationAxis * (angleInDegrees * Mathf.Deg2Rad) / deltaTime;
 
+        // Update previous position and rotation
         _previousPosition = transform.position;
+        _previousRotation = transform.rotation;
     }
 
     private void HandleManualAdjustment()
