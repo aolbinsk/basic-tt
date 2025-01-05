@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.XR;
 
 /// <summary>
-/// Handles initial scene setup and positioning of table tennis elements
+/// Handles initial scene setup and positioning of table tennis elements.
 /// </summary>
 public class TableTennisSceneSetup : MonoBehaviour
 {
@@ -25,13 +25,9 @@ public class TableTennisSceneSetup : MonoBehaviour
     {
         _xrOrigin = player.GetComponent<XROrigin>();
         
-        Debug.Log("Setting up scene");
         BuildRoom();
-        Debug.Log("Building table and net");
         BuildTableAndNet();
-        Debug.Log("Setting up player");
         SetupPlayer();
-        Debug.Log("Setting up paddle");
         ScalePaddleToRegulationSize();
 
         // Set the physics fixed timestep for higher update frequency
@@ -41,12 +37,18 @@ public class TableTennisSceneSetup : MonoBehaviour
         Rigidbody paddleRigidbody = paddle.GetComponent<Rigidbody>();
         if (paddleRigidbody != null)
         {
-            paddleRigidbody.collisionDetectionMode = CollisionDetectionMode.Continuous;
+            paddleRigidbody.isKinematic = true;
+            paddleRigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         }
         else
         {
             Debug.LogError("No Rigidbody found on paddle!");
         }
+
+        // Initialize new systems
+        gameObject.AddComponent<VRInputManager>();
+        gameObject.AddComponent<PhysicsManager>();
+        gameObject.AddComponent<PerformanceMonitor>();
     }
 
     private void BuildTableAndNet()
@@ -96,7 +98,6 @@ public class TableTennisSceneSetup : MonoBehaviour
         _net.transform.localScale = new Vector3(netWidth, netHeight, netThickness);
 
         // Parent to table and position
-        //_net.transform.SetParent(_table.transform, false);
         Debug.Log($"Net dimensions: {_net.transform.localScale}");
         const float surfaceOffset = 0.001f; // Small offset to prevent z-fighting
         float netYPosition = TableTennisPhysicsConfig.TableHeightMeters 
@@ -269,5 +270,30 @@ public class TableTennisSceneSetup : MonoBehaviour
         var uniformScale = Mathf.Min(lengthScale, widthScale);
 
         paddle.transform.localScale *= uniformScale;
+
+        // Ensure the paddle has a BoxCollider
+        if (paddle.GetComponent<Collider>() == null)
+        {
+            var boxCollider = paddle.AddComponent<BoxCollider>();
+
+            // Set the BoxCollider size to match the paddle dimensions
+            boxCollider.size = new Vector3(
+                TableTennisPhysicsConfig.PaddleWidthMeters,
+                TableTennisPhysicsConfig.PaddleThicknessMeters,
+                TableTennisPhysicsConfig.PaddleLengthMeters
+            );
+
+            // Adjust the BoxCollider center if necessary
+            boxCollider.center = new Vector3(0f, 0f, TableTennisPhysicsConfig.PaddleHandleLengthMeters / 2f);
+        }
+
+        // Ensure the paddle has a Rigidbody
+        Rigidbody paddleRigidbody = paddle.GetComponent<Rigidbody>();
+        if (paddleRigidbody == null)
+        {
+            paddleRigidbody = paddle.AddComponent<Rigidbody>();
+        }
+        paddleRigidbody.isKinematic = true;
+        paddleRigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
     }
 }

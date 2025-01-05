@@ -48,9 +48,13 @@
   - Gravity effects
   - Bounce physics
   - Spin effects
+  - Magnus force
+  - Air resistance
 - Paddle and Table Collision Detection
   - Ball bounces realistically on paddle and table
   - Adjustable bounce parameters
+  - Spin transfer during paddle collisions
+  - Friction effects on table collisions
 - Centralized Physics Configuration
   - All physical properties set in code for consistency and maintainability
   - Parameters include table size, paddle size, room scaling, material properties
@@ -58,6 +62,13 @@
   - Ball speed
   - Bounce properties
   - Paddle properties
+  - Spin transfer coefficient
+  - Magnus coefficient
+  - Air resistance parameters
+  - Paddle rubber properties:
+    - Bounciness (`paddleRubberBounciness`)
+    - Throw Multiplier (`paddleThrowMultiplier`)
+    - Spin Multiplier (`paddleSpinMultiplier`)
   - Adjustable via code
 - Accurate Equipment Scaling
   - Paddle dimensions must match regulation sizes
@@ -87,6 +98,13 @@
   - Ball speed
   - Bounce properties
   - Paddle properties
+  - Spin transfer coefficient
+  - Magnus coefficient
+  - Air resistance parameters
+  - Paddle rubber properties:
+    - Bounciness (`paddleRubberBounciness`)
+    - Throw Multiplier (`paddleThrowMultiplier`)
+    - Spin Multiplier (`paddleSpinMultiplier`)
 - Reliable collision detection
 - Smooth transitions between physics states (gripped vs released)
 - Smoothing for extreme controller inputs

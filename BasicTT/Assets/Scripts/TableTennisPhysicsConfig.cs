@@ -18,6 +18,7 @@ public class TableTennisPhysicsConfig : MonoBehaviour
     [Header("Paddle Dimensions")]
     public const float PaddleLengthMeters = 0.2525f;  // Total length including handle
     public const float PaddleWidthMeters = 0.1525f;   // Width at widest point
+    public const float PaddleThicknessMeters = 0.02f;  // Standard paddle thickness
     public const float PaddleHandleLengthMeters = 0.10f;  // Handle length
 
     [Header("Ball Properties")]
@@ -40,6 +41,16 @@ public class TableTennisPhysicsConfig : MonoBehaviour
     [Range(0.1f, 1.0f)]
     public float netBounceRestitution = 0.3f; // Added net bounce restitution
 
+    [Header("Paddle Rubber Properties")]
+    [Range(0.1f, 1.0f)]
+    public float paddleRubberBounciness = 0.95f;
+
+    [Range(0.5f, 2.0f)]
+    public float paddleThrowMultiplier = 1.0f;
+
+    [Range(0.5f, 2.0f)]
+    public float paddleSpinMultiplier = 1.0f;
+
     [Header("Room Dimensions")]
     public const float RoomSizeMeters = 20f; // Size of the room (length and width)
     public const float WallHeightMeters = 5f; // Height of the walls
@@ -50,6 +61,17 @@ public class TableTennisPhysicsConfig : MonoBehaviour
 
     [Header("Physics Settings")]
     public const float PhysicsFixedTimestep = 0.0067f; // 150 Hz physics update rate
+
+    [Header("Aerodynamics")]
+    public const float AirDensity = 1.225f; // kg/m^3 at sea level
+    public const float BallDragCoefficient = 0.47f; // Drag coefficient for a sphere
+    public static readonly float BallCrossSectionalArea = Mathf.PI * Mathf.Pow(BallDiameterMm / 2000f, 2); // Cross-sectional area in m^2
+    public const float MagnusCoefficient = 0.0001f; // Coefficient for Magnus force calculation
+
+    [Header("Spin and Friction")]
+    [Range(0f, 1f)]
+    public float tableFriction = 0.2f;
+    public const float SpinTransferCoefficient = 0.5f; // Coefficient for spin transfer during collisions
 
     private void Awake()
     {
@@ -67,23 +89,35 @@ public class TableTennisPhysicsConfig : MonoBehaviour
     private void InitializePhysicsMaterials()
     {
         // Table material
-        tableMaterial.bounciness = tableBounceRestitution;
-        tableMaterial.dynamicFriction = 0.2f;
-        tableMaterial.staticFriction = 0.2f;
+        if (tableMaterial != null)
+        {
+            tableMaterial.bounciness = tableBounceRestitution;
+            tableMaterial.dynamicFriction = 0.2f;
+            tableMaterial.staticFriction = 0.2f;
+        }
 
         // Paddle material  
-        paddleMaterial.bounciness = paddleBounceRestitution;
-        paddleMaterial.dynamicFriction = 0.6f;
-        paddleMaterial.staticFriction = 0.6f;
+        if (paddleMaterial != null)
+        {
+            paddleMaterial.bounciness = paddleRubberBounciness;
+            paddleMaterial.dynamicFriction = 0.6f;
+            paddleMaterial.staticFriction = 0.6f;
+        }
 
         // Ball material
-        ballMaterial.bounciness = 0.9f;
-        ballMaterial.dynamicFriction = 0.3f;
-        ballMaterial.staticFriction = 0.3f;
+        if (ballMaterial != null)
+        {
+            ballMaterial.bounciness = 0.9f;
+            ballMaterial.dynamicFriction = 0.3f;
+            ballMaterial.staticFriction = 0.3f;
+        }
 
         // Net material
-        netMaterial.bounciness = netBounceRestitution;
-        netMaterial.dynamicFriction = 0.5f;
-        netMaterial.staticFriction = 0.5f;
+        if (netMaterial != null)
+        {
+            netMaterial.bounciness = netBounceRestitution;
+            netMaterial.dynamicFriction = 0.5f;
+            netMaterial.staticFriction = 0.5f;
+        }
     }
 }
