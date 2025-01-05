@@ -6,6 +6,8 @@ using UnityEngine;
 public class CollisionResolutionSystem
 {
     private const float MIN_VELOCITY_THRESHOLD = 0.2f;
+    private const float SLEEP_PREPARATION_THRESHOLD = 0.4f; // Slightly higher than MIN_VELOCITY_THRESHOLD
+    private const float CONTACT_OFFSET = 0.001f; // 1mm safety margin
 
     /// <summary>
     /// Resolves a collision and updates the ball's velocity, position, and spin.
@@ -61,13 +63,27 @@ public class CollisionResolutionSystem
 
         Vector3 reflectedVelocity = Vector3.Reflect(incomingVelocity, normal) * restitution;
 
-        // Stop the ball if velocity is below a small threshold to prevent bobbing
-        if (reflectedVelocity.magnitude < MIN_VELOCITY_THRESHOLD)
+        // Handle transition to potential sleep state
+        if (reflectedVelocity.magnitude < SLEEP_PREPARATION_THRESHOLD)
         {
-            reflectedVelocity = Vector3.zero;
-
-            // Adjust the ball's position to sit on top of the collision point
-            ball.Position = collision.Point + collision.Normal * (TableTennisPhysicsConfig.BallDiameterMm / 2000f);
+            // For horizontal or near-horizontal surfaces (like table)
+            if (collision.Normal.y > 0.7f)
+            {
+                // Don't zero out velocity - let Unity's physics handle it
+                // Just ensure the ball is properly positioned above the surface
+                ball.Position = collision.Point + collision.Normal * (TableTennisPhysicsConfig.BallDiameterMm / 2000f + CONTACT_OFFSET);
+                
+                // Dampen velocity but don't eliminate it
+                reflectedVelocity *= 0.8f;
+                
+                // Reduce angular velocity as well
+                ball.AngularVelocity *= 0.8f;
+            }
+            else 
+            {
+                // For non-horizontal surfaces, maintain a small sliding velocity
+                reflectedVelocity = Vector3.ProjectOnPlane(reflectedVelocity, collision.Normal) * 0.9f;
+            }
         }
 
         // Update ball state

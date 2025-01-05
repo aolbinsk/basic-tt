@@ -25,7 +25,7 @@ public class PaddleController : MonoBehaviour
 
     private const float COLLIDER_THICKNESS_MULTIPLIER = 1.1f; // Slightly larger than paddle for better contact
 
-    private void Start()
+    private void Awake()
     {
         InitializeRigidbody();
         InitializeBoxCollider();
@@ -47,16 +47,14 @@ public class PaddleController : MonoBehaviour
     {
         gameObject.layer = LayerMask.NameToLayer("Paddle");
 
-        // Remove any existing colliders
-        var existingColliders = GetComponents<Collider>();
-        foreach (var collider in existingColliders)
+        // Get or add a BoxCollider component
+        _boxCollider = GetComponent<BoxCollider>();
+        if (_boxCollider == null)
         {
-            DestroyImmediate(collider);
+            // Add and configure box collider
+            _boxCollider = gameObject.AddComponent<BoxCollider>();
         }
 
-        // Add and configure box collider
-        _boxCollider = gameObject.AddComponent<BoxCollider>();
-        
         // Set box collider size to match regulation paddle dimensions
         _boxCollider.size = new Vector3(
             TableTennisPhysicsConfig.PaddleWidthMeters,

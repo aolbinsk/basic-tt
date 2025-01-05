@@ -13,7 +13,7 @@ public class CollisionDetectionSystem
     /// <param name="paddle">The current state of the paddle.</param>
     /// <param name="dt">The time step for the physics update.</param>
     /// <returns>Collision data if a collision is detected, otherwise an empty collision data object.</returns>
-    public CollisionData DetectCollision(BallState ball, PaddleState paddle, float dt)
+    public CollisionData DetectPaddleCollisionWithSphereCast(BallState ball, PaddleState paddle, float dt)
     {
         float ballRadius = TableTennisPhysicsConfig.BallDiameterMm / 2000f;
 
@@ -76,6 +76,63 @@ public class CollisionDetectionSystem
         if (hit)
         {
             float timeOfImpact = (hitInfo.distance / displacement.magnitude) * dt;
+
+            return new CollisionData
+            {
+                Detected = true,
+                Point = hitInfo.point,
+                Normal = hitInfo.normal,
+                TimeOfImpact = timeOfImpact,
+                Collider = hitInfo.collider
+            };
+        }
+
+        return new CollisionData { Detected = false };
+    }
+
+    /// <summary>
+    /// Detects collisions between the ball and paddle, accounting for paddle movement during the physics sub-step.
+    /// </summary>
+    /// <param name="ball">The current state of the ball.</param>
+    /// <param name="paddle">The current state of the paddle.</param>
+    /// <param name="dt">The time step for the physics update.</param>
+    /// <returns>Collision data if a collision is detected, otherwise an empty collision data object.</returns>
+    public CollisionData DetectPaddleCollisionWithCapsuleCast(BallState ball, PaddleState paddle, float dt)
+    {
+        float ballRadius = TableTennisPhysicsConfig.BallDiameterMm / 2000f;
+
+        // Get paddle dimensions for capsule
+        var bounds = paddle.Collider.bounds;
+        float paddleLength = bounds.size.z;
+        float paddleWidth = bounds.size.x;
+    
+        // Use half the paddle width as capsule radius - enough to catch collisions but not too large
+        float capsuleRadius = paddleWidth * 0.5f;
+
+        // Create capsule points along paddle's length
+        Vector3 paddleForward = paddle.Rotation * Vector3.forward;
+        Vector3 capsuleStart = paddle.Position - paddleForward * (paddleLength * 0.5f);
+        Vector3 capsuleEnd = paddle.Position + paddleForward * (paddleLength * 0.5f);
+
+        // Calculate relative movement
+        Vector3 relativeDisplacement = (ball.Position + ball.Velocity * dt) - ball.Position;
+
+        // Perform single capsule cast
+        RaycastHit hitInfo;
+        bool hit = Physics.CapsuleCast(
+            point1: capsuleStart,
+            point2: capsuleEnd,
+            radius: capsuleRadius,
+            direction: relativeDisplacement.normalized,
+            hitInfo: out hitInfo,
+            maxDistance: relativeDisplacement.magnitude + ballRadius,
+            layerMask: TableTennisPhysicsConfig.PaddleLayerMask,
+            queryTriggerInteraction: QueryTriggerInteraction.Ignore
+        );
+
+        if (hit && hitInfo.collider == paddle.Collider)
+        {
+            float timeOfImpact = (hitInfo.distance / relativeDisplacement.magnitude) * dt;
 
             return new CollisionData
             {

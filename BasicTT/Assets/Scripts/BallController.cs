@@ -11,12 +11,13 @@ public class BallController : MonoBehaviour
     private BallState _currentBallState;
     private Transform _xrOriginTransform;
     private Rigidbody _rigidbody;
+    private SphereCollider _ballCollider;
 
     // Constants for ball positioning relative to the controller
-    private static readonly Vector3 CONTROLLER_TIP_OFFSET = new(0f, 0f, 0.15f); // 15cm forward from controller
-    private static readonly Vector3 CONTROLLER_HEIGHT_OFFSET = new(0f, 0.02f, 0f); // 2cm up to avoid clipping
+    private static readonly Vector3 ControllerTipOffset = new(0f, 0f, 0.15f); // 15cm forward from controller
+    private static readonly Vector3 ControllerHeightOffset = new(0f, 0.02f, 0f); // 2cm up to avoid clipping
 
-    private void Start()
+    private void Awake()
     {
         _vrInputManager = VRInputManager.instance;
         ConfigureBallPhysics();
@@ -38,15 +39,15 @@ public class BallController : MonoBehaviour
     {
         gameObject.layer = LayerMask.NameToLayer("Ball");
 
-        var ballCollider = GetComponent<SphereCollider>();
-        if (ballCollider == null)
+        _ballCollider = GetComponent<SphereCollider>();
+        if (_ballCollider == null)
         {
-            ballCollider = gameObject.AddComponent<SphereCollider>();
+            _ballCollider = gameObject.AddComponent<SphereCollider>();
         }
 
         // Convert from mm to meters and set radius
         float radiusInMeters = TableTennisPhysicsConfig.BallDiameterMm / 2000f;
-        ballCollider.radius = radiusInMeters;
+        _ballCollider.radius = radiusInMeters;
         Debug.Log($"Ball collider radius set to {radiusInMeters}m");
 
         _rigidbody = GetComponent<Rigidbody>();
@@ -62,9 +63,14 @@ public class BallController : MonoBehaviour
         _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
 
+        // Configure sleep settings
+        _rigidbody.sleepThreshold = 0.005f; // Small energy threshold for sleeping
+        _rigidbody.maxAngularVelocity = 50f; // Limit max rotation speed
+        _rigidbody.solverIterations = 10; // Increase solver stability
+
         // Assign physics material
-        ballCollider.material = TableTennisPhysicsConfig.instance.ballMaterial;
-        Debug.Log("Ball physics configured");
+        _ballCollider.material = TableTennisPhysicsConfig.instance.ballMaterial;
+        Debug.Log("Ball physics configured with updated sleep parameters");
     }
 
     private void InitializeBallState()
@@ -74,13 +80,20 @@ public class BallController : MonoBehaviour
             Position = transform.position,
             Velocity = Vector3.zero,
             Rotation = transform.rotation,
-            AngularVelocity = Vector3.zero
+            AngularVelocity = Vector3.zero,
+            Collider = _ballCollider
         };
+        Debug.Log("Ball state initialized");
     }
 
     private void Update()
     {
         HandleBallPickupAndThrow();
+
+        if (!_isHeld)
+        {
+            UpdateVisuals(_currentBallState);
+        }
     }
 
     private void HandleBallPickupAndThrow()
@@ -103,8 +116,8 @@ public class BallController : MonoBehaviour
 
             // Calculate ball position at controller tip
             Quaternion controllerRotation = _vrInputManager.GetFilteredLeftRotation();
-            Vector3 tipOffset = controllerRotation * CONTROLLER_TIP_OFFSET;
-            Vector3 heightOffset = controllerRotation * CONTROLLER_HEIGHT_OFFSET;
+            Vector3 tipOffset = controllerRotation * ControllerTipOffset;
+            Vector3 heightOffset = controllerRotation * ControllerHeightOffset;
 
             // Position ball at controller tip in local space
             Vector3 localPosition = _vrInputManager.GetFilteredLeftPosition() + tipOffset + heightOffset;

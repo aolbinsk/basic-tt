@@ -21,6 +21,7 @@ public class BallState
     public Quaternion Rotation;
     public Vector3 Velocity;
     public Vector3 AngularVelocity;
+    public Collider Collider; // Reference to the ball's collider
 }
 
 /// <summary>
