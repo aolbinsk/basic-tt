@@ -60,7 +60,7 @@ public class BallController : MonoBehaviour
         _rigidbody.mass = TableTennisPhysicsConfig.BallMassGrams / 1000f; // Convert to kg
         _rigidbody.isKinematic = true;
         _rigidbody.useGravity = false;
-        _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic; // Enable continuous collision detection
         _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
 
         // Configure sleep settings

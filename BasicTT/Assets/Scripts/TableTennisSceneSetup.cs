@@ -292,7 +292,7 @@ public class PlayerSetupBuilder
 
         yield return new WaitForSeconds(0.1f); // Wait for XR to initialize
         PositionPlayer();
-        ScalePaddleToRegulationSize();
+        //ScalePaddleToRegulationSize();
         PositionBall();
     }
 

@@ -25,6 +25,11 @@ public class CollisionResolutionSystem
         {
             Debug.Log($"Resolving collision. Collision with paddle, Collision point: {collision.Point}, Normal: {collision.Normal}");
 
+            // Determine which side of the paddle was hit
+            bool isLeftSide = collision.Collider == paddle.LeftCollider;
+            float spinMultiplier = isLeftSide ? TableTennisPhysicsConfig.instance.leftSideSpinMultiplier : TableTennisPhysicsConfig.instance.rightSideSpinMultiplier;
+            float throwMultiplier = isLeftSide ? TableTennisPhysicsConfig.instance.leftSideThrowMultiplier : TableTennisPhysicsConfig.instance.rightSideThrowMultiplier;
+
             // Collision with paddle
             restitution = TableTennisPhysicsConfig.instance.paddleRubberBounciness;
 
@@ -34,12 +39,15 @@ public class CollisionResolutionSystem
             // Compute new relative velocity after collision
             Vector3 newRelativeVelocity = relativeVelocity - (1 + restitution) * Vector3.Dot(relativeVelocity, normal) * normal;
 
+            // Apply throw multiplier
+            newRelativeVelocity *= throwMultiplier;
+
             // Update ball velocity
             ball.Velocity = newRelativeVelocity + paddle.Velocity;
 
             // Calculate spin induced by collision
             Vector3 spinAxis = Vector3.Cross(normal, relativeVelocity).normalized;
-            float spinMagnitude = relativeVelocity.magnitude * TableTennisPhysicsConfig.SpinTransferCoefficient * TableTennisPhysicsConfig.instance.paddleSpinMultiplier;
+            float spinMagnitude = relativeVelocity.magnitude * TableTennisPhysicsConfig.SpinTransferCoefficient * spinMultiplier;
             ball.AngularVelocity += spinAxis * spinMagnitude;
 
             Debug.Log($"Post-collision ball velocity: {ball.Velocity}, Position: {ball.Position}, Angular Velocity: {ball.AngularVelocity}");

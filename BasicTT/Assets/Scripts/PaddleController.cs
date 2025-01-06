@@ -4,7 +4,7 @@ using UnityEngine;
 /// Updates the paddle's position and rotation based on filtered VR input.
 /// Allows manual offset and rotation adjustment using the right controller grip button.
 /// Ensures paddle follows the player when the XR Origin moves.
-/// Uses an optimized box collider for efficient collision detection.
+/// Uses two thin colliders for each paddle side to detect side-specific hits.
 /// </summary>
 public class PaddleController : MonoBehaviour
 {
@@ -17,18 +17,19 @@ public class PaddleController : MonoBehaviour
     private Rigidbody _rigidbody;
     private VRInputManager _inputManager;
     private Transform _xrOriginTransform;
-    private BoxCollider _boxCollider;
+    private BoxCollider _leftCollider;
+    private BoxCollider _rightCollider;
 
     private Vector3 _positionOffset = Vector3.zero;
     private Quaternion _rotationOffset = Quaternion.identity;
     private bool _isAdjusting = false;
-
-    private const float COLLIDER_THICKNESS_MULTIPLIER = 1.1f; // Slightly larger than paddle for better contact
+    
+    private const float SmoothingFactor = 0.1f; // Smoothing factor for position and rotation updates
 
     private void Awake()
     {
         InitializeRigidbody();
-        InitializeBoxCollider();
+        InitializeBoxColliders();
         InitializeInputAndTransforms();
     }
 
@@ -43,37 +44,46 @@ public class PaddleController : MonoBehaviour
         _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
     }
 
-    private void InitializeBoxCollider()
+    private void InitializeBoxColliders()
     {
         gameObject.layer = LayerMask.NameToLayer("Paddle");
 
-        // Get or add a BoxCollider component
-        _boxCollider = GetComponent<BoxCollider>();
-        if (_boxCollider == null)
+        // Remove existing colliders
+        var existingColliders = GetComponents<BoxCollider>();
+        foreach (var collider in existingColliders)
         {
-            // Add and configure box collider
-            _boxCollider = gameObject.AddComponent<BoxCollider>();
+            Destroy(collider);
         }
 
-        // Set box collider size to match regulation paddle dimensions
-        _boxCollider.size = new Vector3(
+        // Left side collider
+        _leftCollider = gameObject.AddComponent<BoxCollider>();
+        _leftCollider.size = new Vector3(
             TableTennisPhysicsConfig.PaddleWidthMeters,
-            TableTennisPhysicsConfig.PaddleThicknessMeters,
+            TableTennisPhysicsConfig.PaddleThicknessMeters / 2f,
             TableTennisPhysicsConfig.PaddleLengthMeters
         );
-
-        // Adjust center to account for handle
-        _boxCollider.center = new Vector3(
-            0f, 
+        _leftCollider.center = new Vector3(
             0f,
-            TableTennisPhysicsConfig.PaddleHandleLengthMeters / 2f
+            -TableTennisPhysicsConfig.PaddleThicknessMeters / 4f,
+            0f
         );
+        _leftCollider.material = TableTennisPhysicsConfig.instance.paddleLeftMaterial;
 
-        // Assign physics material
-        _boxCollider.material = TableTennisPhysicsConfig.instance.paddleMaterial;
+        // Right side collider
+        _rightCollider = gameObject.AddComponent<BoxCollider>();
+        _rightCollider.size = new Vector3(
+            TableTennisPhysicsConfig.PaddleWidthMeters,
+            TableTennisPhysicsConfig.PaddleThicknessMeters / 2f,
+            TableTennisPhysicsConfig.PaddleLengthMeters
+        );
+        _rightCollider.center = new Vector3(
+            0f,
+            TableTennisPhysicsConfig.PaddleThicknessMeters / 4f,
+            0f
+        );
+        _rightCollider.material = TableTennisPhysicsConfig.instance.paddleRightMaterial;
 
-        Debug.Log($"Initialized paddle box collider with size: {_boxCollider.size}");
-        Debug.Log($"Paddle collider center: {_boxCollider.center}");
+        Debug.Log("Initialized paddle with left and right colliders.");
     }
 
     private void InitializeInputAndTransforms()
@@ -120,7 +130,6 @@ public class PaddleController : MonoBehaviour
         Vector3 targetPosition = _xrOriginTransform.TransformPoint(localPosition);
         Quaternion targetRotation = _xrOriginTransform.rotation * localRotation;
 
-        // Use Rigidbody to move position and rotation
         _rigidbody.MovePosition(targetPosition);
         _rigidbody.MoveRotation(targetRotation.normalized);
     }
@@ -191,7 +200,8 @@ public class PaddleController : MonoBehaviour
             Rotation = transform.rotation,
             Velocity = _velocity,
             AngularVelocity = _angularVelocity,
-            Collider = _boxCollider
+            LeftCollider = _leftCollider,
+            RightCollider = _rightCollider
         };
     }
 }

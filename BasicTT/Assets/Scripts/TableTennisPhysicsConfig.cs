@@ -32,6 +32,8 @@ public class TableTennisPhysicsConfig : MonoBehaviour
     [SerializeField] public PhysicsMaterial paddleMaterial;
     [SerializeField] public PhysicsMaterial ballMaterial;
     [SerializeField] public PhysicsMaterial netMaterial;
+    [SerializeField] public PhysicsMaterial paddleLeftMaterial;
+    [SerializeField] public PhysicsMaterial paddleRightMaterial;
 
     [Header("Bounce Properties")]
     [Range(0.1f, 1.0f)]
@@ -43,11 +45,21 @@ public class TableTennisPhysicsConfig : MonoBehaviour
 
     [Header("Paddle Rubber Properties")]
     [Range(0.1f, 1.0f)]
-    public float paddleRubberBounciness = 0.98f;
+    public float paddleRubberBounciness = 0.75f;
     [Range(0.5f, 2.0f)]
     public float paddleThrowMultiplier = 1.0f;
     [Range(0.5f, 2.0f)]
-    public float paddleSpinMultiplier = 1.0f;
+    public float paddleSpinMultiplier = 0.8f;
+
+    [Header("Paddle Side Properties")]
+    [Range(0.5f, 2.0f)]
+    public float leftSideSpinMultiplier = 1.0f;
+    [Range(0.5f, 2.0f)]
+    public float rightSideSpinMultiplier = 1.0f;
+    [Range(0.5f, 2.0f)]
+    public float leftSideThrowMultiplier = 1.0f;
+    [Range(0.5f, 2.0f)]
+    public float rightSideThrowMultiplier = 1.0f;
 
     [Header("Room Dimensions")]
     public const float RoomSizeMeters = 20f; // Size of the room (length and width)
@@ -114,6 +126,22 @@ public class TableTennisPhysicsConfig : MonoBehaviour
             paddleMaterial.dynamicFriction = 0.6f;
             paddleMaterial.staticFriction = 0.6f;
             Debug.Log($"Paddle material bounciness set to: {paddleRubberBounciness}");
+        }
+
+        // Left Paddle material
+        if (paddleLeftMaterial != null)
+        {
+            paddleLeftMaterial.bounciness = paddleRubberBounciness;
+            paddleLeftMaterial.dynamicFriction = 0.6f;
+            paddleLeftMaterial.staticFriction = 0.6f;
+        }
+
+        // Right Paddle material
+        if (paddleRightMaterial != null)
+        {
+            paddleRightMaterial.bounciness = paddleRubberBounciness;
+            paddleRightMaterial.dynamicFriction = 0.6f;
+            paddleRightMaterial.staticFriction = 0.6f;
         }
 
         // Ball material

@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 public class PhysicsManager : MonoBehaviour
 {
-    private float subStepInterval = 1.0f / 1000.0f;
+    private const float SubStepInterval = 1.0f / 1000.0f; // 150 Hz physics update rate
     private float _accumulatedTime;
 
     private BallPhysics _ballPhysics;
@@ -15,6 +15,9 @@ public class PhysicsManager : MonoBehaviour
     private PaddleController _paddleController;
 
     private BallState _currentBallState;
+    private BallState _previousBallState;
+    private PaddleState _currentPaddleState;
+    private PaddleState _previousPaddleState;
 
     private void Awake()
     {
@@ -54,16 +57,17 @@ public class PhysicsManager : MonoBehaviour
             Rotation = Quaternion.identity,
             AngularVelocity = Vector3.zero
         };
+        _previousBallState = _currentBallState;
         Debug.Log("Ball state initialized with: " + _currentBallState);
     }
 
     private void FixedUpdate()
     {
         _accumulatedTime += Time.fixedDeltaTime;
-        while (_accumulatedTime >= subStepInterval)
+        while (_accumulatedTime >= SubStepInterval)
         {
-            ProcessPhysicsSubStep(subStepInterval);
-            _accumulatedTime -= subStepInterval;
+            ProcessPhysicsSubStep(SubStepInterval);
+            _accumulatedTime -= SubStepInterval;
         }
     }
 
@@ -80,17 +84,22 @@ public class PhysicsManager : MonoBehaviour
             return;
         }
 
+        // Store previous states
+        _previousBallState = _currentBallState;
+        _previousPaddleState = _currentPaddleState;
+
+        // Get current paddle state
+        _currentPaddleState = _paddleController?.GetCurrentState();
+
         float remainingTime = dt;
 
         while (remainingTime > 0f)
         {
-            // Get current paddle state
-            var paddleState = _paddleController?.GetCurrentState();
-
             // Detect collision with paddle
-            CollisionData paddleCollision = paddleState != null
-                ? _collisionDetector.DetectBallCollisionWithPaddle(_currentBallState, paddleState, remainingTime)
-                : new CollisionData { Detected = false };
+            CollisionData paddleCollision = _collisionDetector.DetectBallCollisionWithPaddle(
+                _previousBallState, _currentBallState,
+                _previousPaddleState, _currentPaddleState,
+                remainingTime);
 
             // Detect collision with environment
             CollisionData environmentCollision = _collisionDetector.DetectEnvironmentCollision(_currentBallState, remainingTime);
@@ -108,7 +117,9 @@ public class PhysicsManager : MonoBehaviour
                 // Resolve collision
                 _collisionResolver.ResolveCollision(
                     ref _currentBallState,
-                    earliestCollision.Collider == paddleState?.Collider ? paddleState : null,
+                    earliestCollision.Collider == _currentPaddleState?.LeftCollider || earliestCollision.Collider == _currentPaddleState?.RightCollider
+                        ? _currentPaddleState
+                        : null,
                     earliestCollision);
 
                 remainingTime -= timeToCollision;

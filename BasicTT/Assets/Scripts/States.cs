@@ -9,7 +9,8 @@ public class PaddleState
     public Quaternion Rotation;
     public Vector3 Velocity;
     public Vector3 AngularVelocity;
-    public Collider Collider; // Reference to the paddle's collider
+    public Collider LeftCollider;  // Reference to the left side collider
+    public Collider RightCollider; // Reference to the right side collider
 }
 
 /// <summary>
