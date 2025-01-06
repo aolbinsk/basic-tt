@@ -73,6 +73,7 @@ public class TableTennisPhysicsConfig : MonoBehaviour
 
     [Header("Layer Masks")]
     public static int PaddleLayerMask;
+    public static int BallLayerMask;
     public static int EnvironmentLayerMask;
 
     private void Awake()
@@ -92,6 +93,7 @@ public class TableTennisPhysicsConfig : MonoBehaviour
     private void InitializeLayerMasks()
     {
         PaddleLayerMask = LayerMask.GetMask("Paddle");
+        BallLayerMask = LayerMask.GetMask("Ball");
         EnvironmentLayerMask = LayerMask.GetMask("Table", "Floor", "Walls", "Ceiling", "Net");
     }
 

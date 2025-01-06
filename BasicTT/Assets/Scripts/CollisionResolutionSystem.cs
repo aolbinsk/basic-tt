@@ -17,80 +17,63 @@ public class CollisionResolutionSystem
     /// <param name="collision">The collision data.</param>
     public void ResolveCollision(ref BallState ball, PaddleState paddle, CollisionData collision)
     {
-        // Log collision details
-        Debug.Log($"Resolving collision. Collision with paddle: {(paddle != null)}, Collision point: {collision.Point}, Normal: {collision.Normal}");
-
-        // Reflect the ball's velocity based on collision normal
         Vector3 incomingVelocity = ball.Velocity;
         Vector3 normal = collision.Normal.normalized;
         float restitution;
 
         if (paddle != null)
         {
+            Debug.Log($"Resolving collision. Collision with paddle, Collision point: {collision.Point}, Normal: {collision.Normal}");
+
             // Collision with paddle
             restitution = TableTennisPhysicsConfig.instance.paddleRubberBounciness;
 
             // Compute relative velocity
             Vector3 relativeVelocity = ball.Velocity - paddle.Velocity;
 
+            // Compute new relative velocity after collision
+            Vector3 newRelativeVelocity = relativeVelocity - (1 + restitution) * Vector3.Dot(relativeVelocity, normal) * normal;
+
+            // Update ball velocity
+            ball.Velocity = newRelativeVelocity + paddle.Velocity;
+
             // Calculate spin induced by collision
             Vector3 spinAxis = Vector3.Cross(normal, relativeVelocity).normalized;
             float spinMagnitude = relativeVelocity.magnitude * TableTennisPhysicsConfig.SpinTransferCoefficient * TableTennisPhysicsConfig.instance.paddleSpinMultiplier;
             ball.AngularVelocity += spinAxis * spinMagnitude;
 
-            // Reflect the relative velocity
-            Vector3 normalVelocity = Vector3.Project(relativeVelocity, normal);
-            Vector3 tangentialVelocity = Vector3.ProjectOnPlane(relativeVelocity, normal);
-
-            Vector3 reflectedNormalVelocity = -normalVelocity * restitution;
-
-            // Apply throw multiplier to the lateral component of the velocity
-            Vector3 adjustedTangentialVelocity = tangentialVelocity * TableTennisPhysicsConfig.instance.paddleThrowMultiplier;
-
-            Vector3 newRelativeVelocity = reflectedNormalVelocity + adjustedTangentialVelocity;
-
-            // Update ball velocity
-            ball.Velocity = paddle.Velocity + newRelativeVelocity;
+            Debug.Log($"Post-collision ball velocity: {ball.Velocity}, Position: {ball.Position}, Angular Velocity: {ball.AngularVelocity}");
         }
         else
         {
             // Collision with environment (e.g., table)
             restitution = TableTennisPhysicsConfig.instance.tableBounceRestitution;
 
+            // Reflect the ball's velocity based on collision normal
+            Vector3 reflectedVelocity = Vector3.Reflect(incomingVelocity, normal) * restitution;
+
             // Apply friction to reduce spin
             ball.AngularVelocity *= (1f - TableTennisPhysicsConfig.instance.tableFriction);
+
+            // Update ball velocity
+            ball.Velocity = reflectedVelocity;
         }
 
-        Vector3 reflectedVelocity = Vector3.Reflect(incomingVelocity, normal) * restitution;
+        // Update ball position to collision point
+        ball.Position = collision.Point + collision.Normal * CONTACT_OFFSET;
 
         // Handle transition to potential sleep state
-        if (reflectedVelocity.magnitude < SLEEP_PREPARATION_THRESHOLD)
+        if (ball.Velocity.magnitude < SLEEP_PREPARATION_THRESHOLD)
         {
-            // For horizontal or near-horizontal surfaces (like table)
-            if (collision.Normal.y > 0.7f)
+            if (collision.Normal.y > 0.7f) // Horizontal or near-horizontal surfaces
             {
-                // Don't zero out velocity - let Unity's physics handle it
-                // Just ensure the ball is properly positioned above the surface
-                ball.Position = collision.Point + collision.Normal * (TableTennisPhysicsConfig.BallDiameterMm / 2000f + CONTACT_OFFSET);
-                
-                // Dampen velocity but don't eliminate it
-                reflectedVelocity *= 0.8f;
-                
-                // Reduce angular velocity as well
-                ball.AngularVelocity *= 0.8f;
+                ball.Velocity *= 0.8f; // Dampen velocity
+                ball.AngularVelocity *= 0.8f; // Reduce angular velocity
             }
-            else 
+            else
             {
-                // For non-horizontal surfaces, maintain a small sliding velocity
-                reflectedVelocity = Vector3.ProjectOnPlane(reflectedVelocity, collision.Normal) * 0.9f;
+                ball.Velocity = Vector3.ProjectOnPlane(ball.Velocity, collision.Normal) * 0.9f; // Maintain sliding velocity
             }
         }
-
-        // Update ball state
-        ball.Velocity = reflectedVelocity;
-        ball.Position = collision.Point;
-
-        // Log post-collision state
-        Debug.Log($"Post-collision ball velocity: {ball.Velocity}, Position: {ball.Position}, Angular Velocity: {ball.AngularVelocity}");
     }
 }

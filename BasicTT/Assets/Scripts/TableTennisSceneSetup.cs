@@ -293,6 +293,7 @@ public class PlayerSetupBuilder
         yield return new WaitForSeconds(0.1f); // Wait for XR to initialize
         PositionPlayer();
         ScalePaddleToRegulationSize();
+        PositionBall();
     }
 
     private void PositionPlayer()
@@ -315,46 +316,44 @@ public class PlayerSetupBuilder
             return;
         }
 
-        ConfigurePaddleScale(paddleMeshFilter);
-        ConfigurePaddleCollider();
-        ConfigurePaddleRigidbody();
-    }
-
-    private void ConfigurePaddleScale(MeshFilter paddleMeshFilter)
-    {
+        // Get the current mesh bounds in local space
         var meshBounds = paddleMeshFilter.sharedMesh.bounds;
-        var meshSize = Vector3.Scale(meshBounds.size, _paddle.transform.localScale);
+        var currentScale = _paddle.transform.localScale;
+        var meshSize = Vector3.Scale(meshBounds.size, currentScale);
 
-        var lengthScale = TableTennisPhysicsConfig.PaddleLengthMeters / meshSize.z;
-        var widthScale = TableTennisPhysicsConfig.PaddleWidthMeters / meshSize.x;
+        // Calculate separate scale factors for each dimension
+        float lengthScale = TableTennisPhysicsConfig.PaddleLengthMeters / meshSize.z;
+        float widthScale = TableTennisPhysicsConfig.PaddleWidthMeters / meshSize.x;
+        float thicknessScale = TableTennisPhysicsConfig.PaddleThicknessMeters / meshSize.y;
 
-        var uniformScale = Mathf.Min(lengthScale, widthScale);
-        _paddle.transform.localScale *= uniformScale;
+        // Apply non-uniform scaling to maintain correct proportions
+        _paddle.transform.localScale = new Vector3(
+            currentScale.x * widthScale,
+            currentScale.y * thicknessScale,
+            currentScale.z * lengthScale
+        );
+
+        Debug.Log($"Paddle scaled to dimensions - Length: {TableTennisPhysicsConfig.PaddleLengthMeters}m, " +
+                  $"Width: {TableTennisPhysicsConfig.PaddleWidthMeters}m, " +
+                  $"Thickness: {TableTennisPhysicsConfig.PaddleThicknessMeters}m");
     }
 
-    private void ConfigurePaddleCollider()
+    private void PositionBall()
     {
-        if (_paddle.GetComponent<Collider>() == null)
+        Debug.Log("Positioning ball");
+        // Place the ball on the opposite side of the table
+        GameObject ball = GameObject.FindGameObjectWithTag("Ball");
+        if (ball != null)
         {
-            var boxCollider = _paddle.AddComponent<BoxCollider>();
-            boxCollider.size = new Vector3(
-                TableTennisPhysicsConfig.PaddleWidthMeters,
-                TableTennisPhysicsConfig.PaddleThicknessMeters,
-                TableTennisPhysicsConfig.PaddleLengthMeters
-            );
-            boxCollider.center = new Vector3(0f, 0f, TableTennisPhysicsConfig.PaddleHandleLengthMeters / 2f);
+            float ballHeight = TableTennisPhysicsConfig.TableHeightMeters + 0.2f; // 20 cm above the table
+            float ballPositionZ = -TableTennisPhysicsConfig.TableLengthMeters / 4f; // Move ball away from player
+            ball.transform.position = new Vector3(0f, ballHeight, ballPositionZ);
+            Debug.Log($"Ball positioned at: {ball.transform.position}");
         }
-    }
-
-    private void ConfigurePaddleRigidbody()
-    {
-        var paddleRigidbody = _paddle.GetComponent<Rigidbody>();
-        if (paddleRigidbody == null)
+        else
         {
-            paddleRigidbody = _paddle.AddComponent<Rigidbody>();
+            Debug.LogError("Ball not found in the scene!");
         }
-        paddleRigidbody.isKinematic = true;
-        paddleRigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
     }
 }
 

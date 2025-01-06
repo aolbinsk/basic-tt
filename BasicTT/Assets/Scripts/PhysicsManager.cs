@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 public class PhysicsManager : MonoBehaviour
 {
-    [SerializeField] private float subStepInterval = 1.0f / 150.0f; // 150 Hz physics
+    private float subStepInterval = 1.0f / 1000.0f;
     private float _accumulatedTime;
 
     private BallPhysics _ballPhysics;
@@ -89,7 +89,7 @@ public class PhysicsManager : MonoBehaviour
 
             // Detect collision with paddle
             CollisionData paddleCollision = paddleState != null
-                ? _collisionDetector.DetectPaddleCollisionWithCapsuleCast(_currentBallState, paddleState, remainingTime)
+                ? _collisionDetector.DetectBallCollisionWithPaddle(_currentBallState, paddleState, remainingTime)
                 : new CollisionData { Detected = false };
 
             // Detect collision with environment
