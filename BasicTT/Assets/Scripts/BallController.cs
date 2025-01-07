@@ -5,7 +5,8 @@ using UnityEngine;
 /// </summary>
 public class BallController : MonoBehaviour
 {
-    private VRInputManager _vrInputManager;
+    [SerializeField] private VRInputManager inputManager;
+    
     private bool _isHeld;
     private Vector3 _previousLeftControllerPosition;
     private BallState _currentBallState;
@@ -19,7 +20,6 @@ public class BallController : MonoBehaviour
 
     private void Awake()
     {
-        _vrInputManager = VRInputManager.instance;
         ConfigureBallPhysics();
         InitializeBallState();
 
@@ -37,8 +37,6 @@ public class BallController : MonoBehaviour
 
     private void ConfigureBallPhysics()
     {
-        gameObject.layer = LayerMask.NameToLayer("Ball");
-
         _ballCollider = GetComponent<SphereCollider>();
         if (_ballCollider == null)
         {
@@ -69,8 +67,15 @@ public class BallController : MonoBehaviour
         _rigidbody.solverIterations = 10; // Increase solver stability
 
         // Assign physics material
-        _ballCollider.material = TableTennisPhysicsConfig.instance.ballMaterial;
-        Debug.Log("Ball physics configured with updated sleep parameters");
+        //if (TableTennisPhysicsConfig.instance.ballMaterial != null)
+        //{
+        //    _ballCollider.material = TableTennisPhysicsConfig.instance.ballMaterial;
+        //    Debug.Log("Ball physics configured with updated sleep parameters");
+        //}
+
+        // Scale the visual ball model to match the correct size
+        transform.localScale = Vector3.one * (TableTennisPhysicsConfig.BallDiameterMm / 1000f);
+        Debug.Log($"Ball visual model scaled to diameter {TableTennisPhysicsConfig.BallDiameterMm / 1000f}m");
     }
 
     private void InitializeBallState()
@@ -90,15 +95,12 @@ public class BallController : MonoBehaviour
     {
         HandleBallPickupAndThrow();
 
-        if (!_isHeld)
-        {
-            UpdateVisuals(_currentBallState);
-        }
+        UpdateVisuals(_currentBallState);
     }
 
     private void HandleBallPickupAndThrow()
     {
-        if (_vrInputManager.leftGripPressed)
+        if (inputManager.leftGripPressed)
         {
             if (!_isHeld)
             {
@@ -111,16 +113,16 @@ public class BallController : MonoBehaviour
 
                 _currentBallState.Velocity = Vector3.zero;
                 _currentBallState.AngularVelocity = Vector3.zero;
-                _previousLeftControllerPosition = _vrInputManager.GetFilteredLeftPosition();
+                _previousLeftControllerPosition = inputManager.GetFilteredLeftPosition();
             }
 
             // Calculate ball position at controller tip
-            Quaternion controllerRotation = _vrInputManager.GetFilteredLeftRotation();
+            Quaternion controllerRotation = inputManager.GetFilteredLeftRotation();
             Vector3 tipOffset = controllerRotation * ControllerTipOffset;
             Vector3 heightOffset = controllerRotation * ControllerHeightOffset;
 
             // Position ball at controller tip in local space
-            Vector3 localPosition = _vrInputManager.GetFilteredLeftPosition() + tipOffset + heightOffset;
+            Vector3 localPosition = inputManager.GetFilteredLeftPosition() + tipOffset + heightOffset;
 
             // Transform to world space
             transform.position = _xrOriginTransform.TransformPoint(localPosition);
@@ -134,7 +136,7 @@ public class BallController : MonoBehaviour
                 _isHeld = false;
 
                 // Calculate throw velocity
-                Vector3 currentControllerPosition = _vrInputManager.GetFilteredLeftPosition();
+                Vector3 currentControllerPosition = inputManager.GetFilteredLeftPosition();
                 Vector3 controllerVelocity = (currentControllerPosition - _previousLeftControllerPosition) / Time.deltaTime;
 
                 // Use the raw controller velocity for throw
@@ -161,13 +163,13 @@ public class BallController : MonoBehaviour
 
         if (_isHeld)
         {
-            _previousLeftControllerPosition = _vrInputManager.GetFilteredLeftPosition();
+            _previousLeftControllerPosition = inputManager.GetFilteredLeftPosition();
         }
     }
 
     public void UpdateVisuals(BallState ballState)
     {
-        if (!_isHeld)
+        if (!_isHeld && ballState != null)
         {
             transform.position = ballState.Position;
             transform.rotation = ballState.Rotation;

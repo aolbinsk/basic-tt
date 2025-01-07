@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Updates the paddle's position and rotation based on filtered VR input.
@@ -8,14 +9,14 @@ using UnityEngine;
 /// </summary>
 public class PaddleController : MonoBehaviour
 {
-    [SerializeField] private GameObject rightControllerModel;
+    [SerializeField] public VRInputManager inputManager;
+    [SerializeField] private GameObject rightControllerVisual;
 
     private Vector3 _previousPosition;
     private Quaternion _previousRotation;
     private Vector3 _velocity;
     private Vector3 _angularVelocity;
     private Rigidbody _rigidbody;
-    private VRInputManager _inputManager;
     private Transform _xrOriginTransform;
     private BoxCollider _leftCollider;
     private BoxCollider _rightCollider;
@@ -23,7 +24,7 @@ public class PaddleController : MonoBehaviour
     private Vector3 _positionOffset = Vector3.zero;
     private Quaternion _rotationOffset = Quaternion.identity;
     private bool _isAdjusting = false;
-    
+
     private const float SmoothingFactor = 0.1f; // Smoothing factor for position and rotation updates
 
     private void Awake()
@@ -67,7 +68,6 @@ public class PaddleController : MonoBehaviour
             -TableTennisPhysicsConfig.PaddleThicknessMeters / 4f,
             0f
         );
-        _leftCollider.material = TableTennisPhysicsConfig.instance.paddleLeftMaterial;
 
         // Right side collider
         _rightCollider = gameObject.AddComponent<BoxCollider>();
@@ -81,16 +81,19 @@ public class PaddleController : MonoBehaviour
             TableTennisPhysicsConfig.PaddleThicknessMeters / 4f,
             0f
         );
-        _rightCollider.material = TableTennisPhysicsConfig.instance.paddleRightMaterial;
 
         Debug.Log("Initialized paddle with left and right colliders.");
     }
 
     private void InitializeInputAndTransforms()
     {
-        _inputManager = VRInputManager.instance;
         _previousPosition = transform.position;
         _previousRotation = transform.rotation;
+
+        if (inputManager == null)
+        {
+            Debug.LogError("VRInputManager instance not found!");
+        }
 
         var xrOrigin = FindFirstObjectByType<Unity.XR.CoreUtils.XROrigin>();
         if (xrOrigin != null)
@@ -102,7 +105,7 @@ public class PaddleController : MonoBehaviour
             Debug.LogError("XROrigin not found in the scene!");
         }
 
-        if (rightControllerModel == null)
+        if (rightControllerVisual == null)
         {
             Debug.LogError("Right Controller Model is not assigned!");
         }
@@ -121,11 +124,11 @@ public class PaddleController : MonoBehaviour
 
     private void UpdateTransform()
     {
-        if (!_xrOriginTransform) return;
+        if (!_xrOriginTransform || inputManager == null) return;
 
         // Transform the controller position and rotation to world space relative to the XR Origin
-        Vector3 localPosition = _inputManager.GetFilteredRightPosition() + _positionOffset;
-        Quaternion localRotation = _inputManager.GetFilteredRightRotation() * _rotationOffset;
+        Vector3 localPosition = inputManager.GetFilteredRightPosition() + _positionOffset;
+        Quaternion localRotation = inputManager.GetFilteredRightRotation() * _rotationOffset;
 
         Vector3 targetPosition = _xrOriginTransform.TransformPoint(localPosition);
         Quaternion targetRotation = _xrOriginTransform.rotation * localRotation;
@@ -159,21 +162,21 @@ public class PaddleController : MonoBehaviour
 
     private void HandleManualAdjustment()
     {
-        if (_inputManager.rightGripPressed)
+        if (inputManager.rightGripPressed)
         {
             if (!_isAdjusting)
             {
                 _isAdjusting = true;
                 // Toggle visibility of the right controller model based on the grip button
-                if (rightControllerModel != null)
+                if (rightControllerVisual != null)
                 {
-                    rightControllerModel.SetActive(_inputManager.rightGripPressed);
+                    rightControllerVisual.SetActive(inputManager.rightGripPressed);
                 }
             }
 
             // Update offsets based on current positions
-            _positionOffset = transform.position - _xrOriginTransform.TransformPoint(_inputManager.GetFilteredRightPosition());
-            _rotationOffset = Quaternion.Inverse(_xrOriginTransform.rotation * _inputManager.GetFilteredRightRotation()) * transform.rotation;
+            _positionOffset = transform.position - _xrOriginTransform.TransformPoint(inputManager.GetFilteredRightPosition());
+            _rotationOffset = Quaternion.Inverse(_xrOriginTransform.rotation * inputManager.GetFilteredRightRotation()) * transform.rotation;
         }
         else
         {
@@ -181,9 +184,9 @@ public class PaddleController : MonoBehaviour
             {
                 _isAdjusting = false;
                 // Toggle visibility of the right controller model based on the grip button
-                if (rightControllerModel != null)
+                if (rightControllerVisual != null)
                 {
-                    rightControllerModel.SetActive(_inputManager.rightGripPressed);
+                    rightControllerVisual.SetActive(inputManager.rightGripPressed);
                 }
                 // Print the offset values
                 Debug.Log($"Paddle Offset Position: {_positionOffset}");
@@ -203,5 +206,23 @@ public class PaddleController : MonoBehaviour
             LeftCollider = _leftCollider,
             RightCollider = _rightCollider
         };
+    }
+
+    /// <summary>
+    /// Sets the paddle GameObject and initializes its components.
+    /// </summary>
+    /// <param name="paddle">The paddle GameObject to be controlled.</param>
+    public void SetPaddle(GameObject paddle)
+    {
+        if (paddle == null)
+        {
+            Debug.LogError("Paddle GameObject is null!");
+            return;
+        }
+
+        transform.SetPositionAndRotation(paddle.transform.position, paddle.transform.rotation);
+        InitializeRigidbody();
+        InitializeBoxColliders();
+        Debug.Log("Paddle assigned and initialized.");
     }
 }

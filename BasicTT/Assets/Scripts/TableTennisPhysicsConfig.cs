@@ -20,6 +20,7 @@ public class TableTennisPhysicsConfig : MonoBehaviour
     public const float PaddleWidthMeters = 0.1525f;   // Width at widest point
     public const float PaddleThicknessMeters = 0.02f;  // Standard paddle thickness
     public const float PaddleHandleLengthMeters = 0.10f;  // Handle length
+    public const float PaddleHandleRadiusMeters = 0.02f;
 
     [Header("Ball Properties")]
     public const float BallDiameterMm = 40f;  // Regulation size
@@ -95,9 +96,11 @@ public class TableTennisPhysicsConfig : MonoBehaviour
             instance = this;
             InitializeLayerMasks();
             InitializePhysicsMaterials();
+            Debug.Log("TableTennisPhysicsConfig initialized");
         }
         else
         {
+            Debug.LogWarning("Multiple TableTennisPhysicsConfigs found. Destroying duplicate.");
             Destroy(gameObject);
         }
     }

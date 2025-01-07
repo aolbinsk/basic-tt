@@ -10,12 +10,10 @@ using UnityEngine.XR;
 public class TableTennisSceneSetup : MonoBehaviour
 {
     [SerializeField] private GameObject player;
-    [SerializeField] private GameObject paddle;
 
     private RoomBuilder _roomBuilder;
     private TableTennisEquipmentBuilder _equipmentBuilder;
     private PlayerSetupBuilder _playerSetupBuilder;
-    private SystemInitializer _systemInitializer;
 
     private void Start()
     {
@@ -28,8 +26,7 @@ public class TableTennisSceneSetup : MonoBehaviour
     {
         _roomBuilder = new RoomBuilder();
         _equipmentBuilder = new TableTennisEquipmentBuilder();
-        _playerSetupBuilder = new PlayerSetupBuilder(player, paddle);
-        _systemInitializer = new SystemInitializer(gameObject);
+        _playerSetupBuilder = new PlayerSetupBuilder(player);
     }
 
     private void SetupScene()
@@ -39,13 +36,70 @@ public class TableTennisSceneSetup : MonoBehaviour
             _roomBuilder.BuildRoom();
             _equipmentBuilder.BuildEquipment();
             StartCoroutine(_playerSetupBuilder.SetupPlayer());
-            _systemInitializer.InitializeSystems();
         }
         catch (System.Exception e)
         {
             Debug.LogError($"Failed to setup scene: {e.Message}");
             throw;
         }
+    }
+}
+
+public class PaddleBuilder
+{
+    public GameObject BuildPaddle()
+    {
+        // 1) Create a parent GameObject to hold the entire paddle
+        var paddleRoot = new GameObject("Paddle");
+        paddleRoot.layer = LayerMask.NameToLayer("Paddle");
+
+        // 2) Build the paddle head geometry
+        var paddleHead = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        paddleHead.name = "PaddleHead";
+        paddleHead.transform.SetParent(paddleRoot.transform, false);
+
+        // 3) Scale the paddle head according to config
+        paddleHead.transform.localScale = new Vector3(
+            TableTennisPhysicsConfig.PaddleWidthMeters,
+            TableTennisPhysicsConfig.PaddleThicknessMeters,
+            TableTennisPhysicsConfig.PaddleLengthMeters
+        );
+
+        // 4) Position the paddle head
+        float halfLength = TableTennisPhysicsConfig.PaddleLengthMeters * 0.5f;
+        paddleHead.transform.localPosition = new Vector3(0f, 0f, halfLength * 0.5f);
+
+        // 5) Configure the collider and material
+        var headCollider = paddleHead.GetComponent<BoxCollider>();
+        headCollider.material = TableTennisPhysicsConfig.instance.paddleMaterial;
+
+        var headRenderer = paddleHead.GetComponent<Renderer>();
+        if (headRenderer != null)
+        {
+            var paddleMat = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+            {
+                color = Color.red
+            };
+            headRenderer.material = paddleMat;
+        }
+
+        // 6) Build the handle
+        var paddleHandle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        paddleHandle.name = "PaddleHandle";
+        paddleHandle.transform.SetParent(paddleRoot.transform, false);
+
+        float handleRadius = TableTennisPhysicsConfig.PaddleHandleRadiusMeters;
+        float handleLength = TableTennisPhysicsConfig.PaddleHandleLengthMeters;
+        paddleHandle.transform.localScale = new Vector3(handleRadius * 2f, handleLength * 0.5f, handleRadius * 2f);
+
+        float handleOffsetZ = halfLength + (handleLength * 0.5f);
+        paddleHandle.transform.localPosition = new Vector3(0f, 0f, handleOffsetZ);
+        paddleHandle.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+
+        var handleCollider = paddleHandle.AddComponent<CapsuleCollider>();
+        handleCollider.material = TableTennisPhysicsConfig.instance.paddleMaterial;
+
+        return paddleRoot;
     }
 }
 
@@ -67,7 +121,7 @@ public class RoomBuilder
         var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
         floor.name = "Floor";
         floor.layer = LayerMask.NameToLayer("Floor");
-        
+
         const float roomSize = TableTennisPhysicsConfig.RoomSizeMeters;
         const float floorThickness = 0.1f;
         floor.transform.localScale = new Vector3(roomSize, floorThickness, roomSize);
@@ -154,7 +208,7 @@ public class RoomBuilder
         var ceiling = GameObject.CreatePrimitive(PrimitiveType.Plane);
         ceiling.name = "Ceiling";
         ceiling.layer = LayerMask.NameToLayer("Ceiling");
-        
+
         const float roomSize = TableTennisPhysicsConfig.RoomSizeMeters;
         ceiling.transform.localScale = new Vector3(roomSize / 10f, 1f, roomSize / 10f);
         ceiling.transform.position = new Vector3(0f, TableTennisPhysicsConfig.WallHeightMeters, 0f);
@@ -175,12 +229,25 @@ public class TableTennisEquipmentBuilder
 {
     private GameObject _table;
     private GameObject _net;
+    private GameObject _ball;    
 
     public void BuildEquipment()
     {
         Debug.Log("Building table tennis equipment");
         BuildTableTop();
         BuildNet();
+        BuildBall();
+    }
+
+    private void BuildBall()
+    {
+        var ballBuilder = new BallBuilder();
+        _ball = ballBuilder.BuildBall();
+
+        // Position the ball above the table
+        float ballHeight = TableTennisPhysicsConfig.TableHeightMeters + 0.2f; // e.g., 20cm above table
+        _ball.transform.position = new Vector3(0f, ballHeight, -TableTennisPhysicsConfig.TableLengthMeters / 4f);
+        _ball.tag = "Ball";
     }
 
     private void BuildTableTop()
@@ -276,23 +343,36 @@ public class TableTennisEquipmentBuilder
 public class PlayerSetupBuilder
 {
     private readonly GameObject _player;
-    private readonly GameObject _paddle;
     private XROrigin _xrOrigin;
 
-    public PlayerSetupBuilder(GameObject player, GameObject paddle)
+    public PlayerSetupBuilder(GameObject player)
     {
         _player = player;
-        _paddle = paddle;
     }
+
+    private PaddleBuilder _paddleBuilder;
 
     public IEnumerator SetupPlayer()
     {
         Debug.Log("Setting up player");
         _xrOrigin = _player.GetComponent<XROrigin>();
 
-        yield return new WaitForSeconds(0.1f); // Wait for XR to initialize
+        yield return new WaitForSeconds(0.1f);
+
         PositionPlayer();
-        //ScalePaddleToRegulationSize();
+
+        _paddleBuilder = new PaddleBuilder();
+        GameObject codePaddle = _paddleBuilder.BuildPaddle();
+
+        var paddleController = codePaddle.AddComponent<PaddleController>();
+        paddleController.inputManager = VRInputManager.instance;
+
+        var rightHandTransform = _xrOrigin.transform.Find("RightController");
+        codePaddle.transform.SetParent(rightHandTransform, false);
+
+        codePaddle.transform.localPosition = Vector3.zero;
+        codePaddle.transform.localRotation = Quaternion.identity;
+
         PositionBall();
     }
 
@@ -302,51 +382,18 @@ public class PlayerSetupBuilder
         float zOffset = tableHalfLength + TableTennisPhysicsConfig.PlayerDistanceFromTable;
 
         _xrOrigin.transform.position = new Vector3(0f, 0f, zOffset);
-        _xrOrigin.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
         Debug.Log($"Player positioned at z-offset: {zOffset}m from center");
-    }
-
-    private void ScalePaddleToRegulationSize()
-    {
-        var paddleMeshFilter = _paddle.GetComponentInChildren<MeshFilter>();
-        if (paddleMeshFilter == null)
-        {
-            Debug.LogError("No MeshFilter found on paddle!");
-            return;
-        }
-
-        // Get the current mesh bounds in local space
-        var meshBounds = paddleMeshFilter.sharedMesh.bounds;
-        var currentScale = _paddle.transform.localScale;
-        var meshSize = Vector3.Scale(meshBounds.size, currentScale);
-
-        // Calculate separate scale factors for each dimension
-        float lengthScale = TableTennisPhysicsConfig.PaddleLengthMeters / meshSize.z;
-        float widthScale = TableTennisPhysicsConfig.PaddleWidthMeters / meshSize.x;
-        float thicknessScale = TableTennisPhysicsConfig.PaddleThicknessMeters / meshSize.y;
-
-        // Apply non-uniform scaling to maintain correct proportions
-        _paddle.transform.localScale = new Vector3(
-            currentScale.x * widthScale,
-            currentScale.y * thicknessScale,
-            currentScale.z * lengthScale
-        );
-
-        Debug.Log($"Paddle scaled to dimensions - Length: {TableTennisPhysicsConfig.PaddleLengthMeters}m, " +
-                  $"Width: {TableTennisPhysicsConfig.PaddleWidthMeters}m, " +
-                  $"Thickness: {TableTennisPhysicsConfig.PaddleThicknessMeters}m");
     }
 
     private void PositionBall()
     {
         Debug.Log("Positioning ball");
-        // Place the ball on the opposite side of the table
         GameObject ball = GameObject.FindGameObjectWithTag("Ball");
         if (ball != null)
         {
-            float ballHeight = TableTennisPhysicsConfig.TableHeightMeters + 0.2f; // 20 cm above the table
-            float ballPositionZ = -TableTennisPhysicsConfig.TableLengthMeters / 4f; // Move ball away from player
+            float ballHeight = TableTennisPhysicsConfig.TableHeightMeters + 0.2f;
+            float ballPositionZ = -TableTennisPhysicsConfig.TableLengthMeters / 4f;
             ball.transform.position = new Vector3(0f, ballHeight, ballPositionZ);
             Debug.Log($"Ball positioned at: {ball.transform.position}");
         }
@@ -354,29 +401,5 @@ public class PlayerSetupBuilder
         {
             Debug.LogError("Ball not found in the scene!");
         }
-    }
-}
-
-/// <summary>
-/// Handles initialization of core game systems.
-/// </summary>
-public class SystemInitializer
-{
-    private readonly GameObject _gameObject;
-
-    public SystemInitializer(GameObject gameObject)
-    {
-        _gameObject = gameObject;
-    }
-
-    public void InitializeSystems()
-    {
-        Time.fixedDeltaTime = TableTennisPhysicsConfig.PhysicsFixedTimestep;
-
-        _gameObject.AddComponent<VRInputManager>();
-        _gameObject.AddComponent<PhysicsManager>();
-        _gameObject.AddComponent<PerformanceMonitor>();
-
-        Debug.Log("Core systems initialized");
     }
 }

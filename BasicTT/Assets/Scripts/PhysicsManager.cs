@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 public class PhysicsManager : MonoBehaviour
 {
-    private const float SubStepInterval = 1.0f / 1000.0f; // 150 Hz physics update rate
+    private const float SubStepInterval = 1.0f / 150.0f; // 150 Hz physics update rate
     private float _accumulatedTime;
 
     private BallPhysics _ballPhysics;
@@ -22,12 +22,8 @@ public class PhysicsManager : MonoBehaviour
     private void Awake()
     {
         InitializeSystems();
+        InitializeBallState(); // Ensure ball state is initialized before FixedUpdate
         Debug.Log("PhysicsManager initialized");
-    }
-
-    private void Start()
-    {
-        InitializeBallState();
     }
 
     private void InitializeSystems()
@@ -63,6 +59,13 @@ public class PhysicsManager : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (_ballController == null) return;
+        if (_ballController.IsHeld()) return;
+        if (_currentBallState == null) return;
+        if (_currentBallState.Position == Vector3.zero) return;
+        if (_currentBallState.Velocity == Vector3.zero) return;
+        
+        
         _accumulatedTime += Time.fixedDeltaTime;
         while (_accumulatedTime >= SubStepInterval)
         {
