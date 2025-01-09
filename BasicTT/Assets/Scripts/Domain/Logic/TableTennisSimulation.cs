@@ -48,8 +48,16 @@ namespace Domain.Logic
         /// </summary>
         private void InitializeStates()
         {
-            InitializeBallState();
-
+            _currentBallState = new BallState
+            {
+                Position = Vector3.zero,
+                Velocity = Vector3.zero,
+                Rotation = Quaternion.identity,
+                AngularVelocity = Vector3.zero,
+                IsHeld = false
+            };
+            _previousBallState = _currentBallState;
+            
             _currentPaddleState = new PaddleState
             {
                 Position = Vector3.zero,
@@ -57,8 +65,6 @@ namespace Domain.Logic
                 Rotation = Quaternion.identity,
                 AngularVelocity = Vector3.zero
             };
-
-            _previousBallState = _currentBallState;
             _previousPaddleState = _currentPaddleState;
         }
 
@@ -82,6 +88,8 @@ namespace Domain.Logic
                     Velocity = _currentBallState.Velocity,
                     AngularVelocity = _currentBallState.AngularVelocity,
                     GameObject = _currentBallState.GameObject,
+                    IsHeld = _currentBallState.IsHeld,
+                    Collider = _currentBallState.Collider,
                 };
                 
                 // Physics integration
@@ -142,31 +150,6 @@ namespace Domain.Logic
         public void SetCurrentBallState(BallState ballState)
         {
             _currentBallState = ballState;
-        }
-
-        /// <summary>
-        /// Resets the ball state to its initial values.
-        /// </summary>
-        public void ResetBallState()
-        {
-            InitializeBallState();
-        }
-
-        /// <summary>
-        /// Initializes the ball state to default values.
-        /// </summary>
-        private void InitializeBallState()
-        {
-            _currentBallState = new BallState
-            {
-                Position = Vector3.zero,
-                Velocity = Vector3.zero,
-                Rotation = Quaternion.identity,
-                AngularVelocity = Vector3.zero,
-                IsHeld = false
-            };
-
-            _previousBallState = _currentBallState;
         }
     }
 }

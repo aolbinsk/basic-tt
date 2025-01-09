@@ -118,6 +118,10 @@ namespace Infrastructure.Bridging
             
             _currentBallState = _simulation.GetCurrentBallState();
             _currentPaddleState = _simulation.GetCurrentPaddleState();
+            
+            _currentBallState.Collider = _ballGameObject.GetComponent<SphereCollider>();
+            _currentPaddleState.LeftCollider = _leftPaddleCollider;
+            _currentPaddleState.RightCollider = _rightPaddleCollider;
         }
 
         /// <summary>
@@ -143,8 +147,6 @@ namespace Infrastructure.Bridging
             _currentPaddleState.Rotation = _inputManager.ReadFilteredRightRotation();
             _currentPaddleState.Velocity = _inputManager.GetRightControllerVelocity();
             _currentPaddleState.AngularVelocity = _inputManager.GetRightControllerAngularVelocity();
-            _currentPaddleState.LeftCollider = _leftPaddleCollider;
-            _currentPaddleState.RightCollider = _rightPaddleCollider;
 
             // Update ball holding logic
             if (leftControllerGripAction.action.IsPressed())

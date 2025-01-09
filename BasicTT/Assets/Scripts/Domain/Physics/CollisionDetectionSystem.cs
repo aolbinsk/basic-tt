@@ -40,10 +40,11 @@ namespace Domain.Physics
             CollisionData collisionData = DetectPaddleSideCollision(
                 previousBallState, currentBallState,
                 previousPaddleState, currentPaddleState,
-                deltaTime, previousPaddleState?.LeftCollider, currentPaddleState?.LeftCollider as BoxCollider);
+                deltaTime, previousPaddleState?.LeftCollider, currentPaddleState?.LeftCollider);
 
             if (collisionData.Detected)
             {
+                Debug.Log("Collision detected with left paddle side");
                 return collisionData;
             }
 
@@ -51,10 +52,11 @@ namespace Domain.Physics
             collisionData = DetectPaddleSideCollision(
                 previousBallState, currentBallState,
                 previousPaddleState, currentPaddleState,
-                deltaTime, previousPaddleState?.RightCollider, currentPaddleState?.RightCollider as BoxCollider);
+                deltaTime, previousPaddleState?.RightCollider, currentPaddleState?.RightCollider);
 
             if (collisionData.Detected)
             {
+                Debug.Log("Collision detected with right paddle side");
                 return collisionData;
             }
 
