@@ -29,9 +29,9 @@ namespace Domain.Physics
             if (paddle != null)
             {
                 // Collision with paddle
-                bool isLeftSide = ReferenceEquals(collision.Collider, paddle.LeftCollider);
-                float spinMultiplier = isLeftSide ? config.Paddle.LeftSideSpinMultiplier : config.Paddle.RightSideSpinMultiplier;
-                float throwMultiplier = isLeftSide ? config.Paddle.LeftSideThrowMultiplier : config.Paddle.RightSideThrowMultiplier;
+                bool isForehand = ReferenceEquals(collision.Collider, paddle.ForehandCollider);
+                float spinMultiplier = isForehand ? config.Paddle.LeftSideSpinMultiplier : config.Paddle.RightSideSpinMultiplier;
+                float throwMultiplier = isForehand ? config.Paddle.LeftSideThrowMultiplier : config.Paddle.RightSideThrowMultiplier;
 
                 restitution = config.Paddle.RubberBounciness;
 

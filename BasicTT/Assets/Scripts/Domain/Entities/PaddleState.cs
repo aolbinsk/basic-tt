@@ -11,8 +11,8 @@ namespace Domain.Entities
         public Quaternion Rotation { get; set; }
         public Vector3 Velocity { get; set; }
         public Vector3 AngularVelocity { get; set; }
-        public BoxCollider LeftCollider { get; set; }
-        public BoxCollider RightCollider { get; set; }
+        public BoxCollider ForehandCollider { get; set; }
+        public BoxCollider BackhandCollider { get; set; }
         public GameObject GameObject { get; set; }
     }
 }

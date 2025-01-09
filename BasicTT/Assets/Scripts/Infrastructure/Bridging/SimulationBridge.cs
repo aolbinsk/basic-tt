@@ -41,8 +41,8 @@ namespace Infrastructure.Bridging
         private XROrigin _xrOrigin;
         private GameObject _ballGameObject;
         private GameObject _paddleGameObject;
-        private BoxCollider _leftPaddleCollider;
-        private BoxCollider _rightPaddleCollider;
+        private BoxCollider _forehandPaddleCollider;
+        private BoxCollider _backhandPaddleCollider;
         private IPhysicsConfig _physicsConfig;
 
         private PaddleState _currentPaddleState;
@@ -110,18 +110,18 @@ namespace Infrastructure.Bridging
             Debug.Assert(_ballGameObject != null, LOG_PREFIX + "Ball GameObject not found.");
             Debug.Assert(_paddleGameObject != null, LOG_PREFIX + "Paddle GameObject not found.");
             
-            // Get colliders by name, LeftSide, RightSide
-            _leftPaddleCollider = _paddleGameObject.transform.Find("PaddleHead/LeftSide")?.GetComponent<BoxCollider>();
-            _rightPaddleCollider = _paddleGameObject.transform.Find("PaddleHead/RightSide")?.GetComponent<BoxCollider>();
-            Debug.Assert(_leftPaddleCollider != null, LOG_PREFIX + "Left paddle collider not found.");
-            Debug.Assert(_rightPaddleCollider != null, LOG_PREFIX + "Right paddle collider not found.");
+            // Get colliders by name, ForehandSide, BackhandSide
+            _forehandPaddleCollider = _paddleGameObject.transform.Find("PaddleHead/ForehandSide")?.GetComponent<BoxCollider>();
+            _backhandPaddleCollider = _paddleGameObject.transform.Find("PaddleHead/BackhandSide")?.GetComponent<BoxCollider>();
+            Debug.Assert(_forehandPaddleCollider != null, LOG_PREFIX + "Forehand paddle collider not found.");
+            Debug.Assert(_backhandPaddleCollider != null, LOG_PREFIX + "Backhand paddle collider not found.");
             
             _currentBallState = _simulation.GetCurrentBallState();
             _currentPaddleState = _simulation.GetCurrentPaddleState();
             
             _currentBallState.Collider = _ballGameObject.GetComponent<SphereCollider>();
-            _currentPaddleState.LeftCollider = _leftPaddleCollider;
-            _currentPaddleState.RightCollider = _rightPaddleCollider;
+            _currentPaddleState.ForehandCollider = _forehandPaddleCollider;
+            _currentPaddleState.BackhandCollider = _backhandPaddleCollider;
         }
 
         /// <summary>

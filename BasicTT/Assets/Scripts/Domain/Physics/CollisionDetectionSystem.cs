@@ -36,27 +36,27 @@ namespace Domain.Physics
             PaddleState previousPaddleState, PaddleState currentPaddleState,
             float deltaTime)
         {
-            // Check for collisions with the left paddle side
+            // Check for collisions with the forehand paddle side
             CollisionData collisionData = DetectPaddleSideCollision(
                 previousBallState, currentBallState,
                 previousPaddleState, currentPaddleState,
-                deltaTime, previousPaddleState?.LeftCollider, currentPaddleState?.LeftCollider);
+                deltaTime, previousPaddleState?.ForehandCollider, currentPaddleState?.ForehandCollider);
 
             if (collisionData.Detected)
             {
-                Debug.Log("Collision detected with left paddle side");
+                Debug.Log("Collision detected with forehand paddle side");
                 return collisionData;
             }
 
-            // Check for collisions with the right paddle side
+            // Check for collisions with the backhand paddle side
             collisionData = DetectPaddleSideCollision(
                 previousBallState, currentBallState,
                 previousPaddleState, currentPaddleState,
-                deltaTime, previousPaddleState?.RightCollider, currentPaddleState?.RightCollider);
+                deltaTime, previousPaddleState?.BackhandCollider, currentPaddleState?.BackhandCollider);
 
             if (collisionData.Detected)
             {
-                Debug.Log("Collision detected with right paddle side");
+                Debug.Log("Collision detected with backhand paddle side");
                 return collisionData;
             }
 

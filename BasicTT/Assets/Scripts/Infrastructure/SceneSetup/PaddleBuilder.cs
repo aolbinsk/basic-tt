@@ -47,28 +47,28 @@ namespace Infrastructure.SceneSetup
             float halfLength = _config.Paddle.LengthMeters * 0.5f;
             paddleHead.transform.localPosition = new Vector3(0f, 0f, halfLength * 0.5f);
 
-            // 5) Remove existing collider and add left and right side colliders
+            // 5) Remove existing collider and add forehand and backhand side colliders
             Object.Destroy(paddleHead.GetComponent<BoxCollider>());
 
-            // Left side collider
-            var leftSide = new GameObject("LeftSide");
-            leftSide.transform.SetParent(paddleHead.transform, false);
-            leftSide.transform.localPosition = Vector3.zero;
-            leftSide.transform.localScale = Vector3.one;
-            var leftCollider = leftSide.AddComponent<BoxCollider>();
-            leftCollider.size = new Vector3(0.5f, 1f, 1f);
-            leftCollider.center = new Vector3(-0.25f, 0f, 0f);
-            leftCollider.material = _config.Paddle.Material;
+            // Forehand side collider
+            var forehandSide = new GameObject("ForehandSide");
+            forehandSide.transform.SetParent(paddleHead.transform, false);
+            forehandSide.transform.localPosition = Vector3.zero;
+            forehandSide.transform.localScale = Vector3.one;
+            var forehandCollider = forehandSide.AddComponent<BoxCollider>();
+            forehandCollider.size = new Vector3(0.5f, 1f, 1f);
+            forehandCollider.center = new Vector3(-0.25f, 0f, 0f);
+            forehandCollider.material = _config.Paddle.Material;
 
-            // Right side collider
-            var rightSide = new GameObject("RightSide");
-            rightSide.transform.SetParent(paddleHead.transform, false);
-            rightSide.transform.localPosition = Vector3.zero;
-            rightSide.transform.localScale = Vector3.one;
-            var rightCollider = rightSide.AddComponent<BoxCollider>();
-            rightCollider.size = new Vector3(0.5f, 1f, 1f);
-            rightCollider.center = new Vector3(0.25f, 0f, 0f);
-            rightCollider.material = _config.Paddle.Material;
+            // Backhand side collider
+            var backhandSide = new GameObject("BackhandSide");
+            backhandSide.transform.SetParent(paddleHead.transform, false);
+            backhandSide.transform.localPosition = Vector3.zero;
+            backhandSide.transform.localScale = Vector3.one;
+            var backhandCollider = backhandSide.AddComponent<BoxCollider>();
+            backhandCollider.size = new Vector3(0.5f, 1f, 1f);
+            backhandCollider.center = new Vector3(0.25f, 0f, 0f);
+            backhandCollider.material = _config.Paddle.Material;
 
             // 6) Configure the paddle head material
             var headRenderer = paddleHead.GetComponent<Renderer>();
