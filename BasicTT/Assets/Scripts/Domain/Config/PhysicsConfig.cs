@@ -8,6 +8,8 @@ namespace Domain.Config
     /// </summary>
     public class PhysicsConfig : IPhysicsConfig
     {
+        private Vector3 _gravity = UnityEngine.Physics.gravity;
+        
         // Constants
         private const float DEFAULT_AIR_DENSITY = 1.225f; // kg/m^3 at sea level
         private const float DEFAULT_MAGNUS_COEFFICIENT = 0.0001f;
@@ -20,7 +22,12 @@ namespace Domain.Config
         public float AngularDragCoefficient => DEFAULT_ANGULAR_DRAG_COEFFICIENT;
         public float SpinTransferCoefficient => DEFAULT_SPIN_TRANSFER_COEFFICIENT;
         
-        public Vector3 Gravity => UnityEngine.Physics.gravity;
+        public Vector3 Gravity
+        {
+            get => _gravity;
+            set => _gravity = value;
+        }
+
         public int BallLayerMask { get; set; }
         public int EnvironmentLayerMask { get; set; }
 
