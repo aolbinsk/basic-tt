@@ -1,10 +1,10 @@
 using UnityEngine;
+using Domain.Entities;
+using Domain.Interfaces;
+using Domain.Utilities;
 
 namespace Domain.Logic
 {
-    using Entities;
-    using Interfaces;
-
     /// <summary>
     /// High-level orchestrator for the table tennis simulation. Manages the ball, paddle, and hand states, physics integration, and collision handling.
     /// </summary>
@@ -15,12 +15,10 @@ namespace Domain.Logic
         private readonly IRenderer _renderer;
         private readonly IPhysicsConfig _physicsConfig;
 
-        private BallState _currentBallState;
+        private readonly CircularBuffer<BallState> _ballStateBuffer = new (2);
         private PaddleState _currentPaddleState;
         private HandState _leftHandState;
         private HandState _rightHandState;
-        private BallState _previousBallState;
-        private PaddleState _previousPaddleState;
 
         private const string LOG_PREFIX = "[TableTennisSimulation] ";
 
@@ -50,15 +48,12 @@ namespace Domain.Logic
         /// </summary>
         private void InitializeStates()
         {
-            _currentBallState = new BallState
-            {
-                Position = Vector3.zero,
-                Velocity = Vector3.zero,
-                Rotation = Quaternion.identity,
-                AngularVelocity = Vector3.zero,
-                IsHeld = false
-            };
-            _previousBallState = _currentBallState;
+            var initialState = _ballStateBuffer.GetNext();
+            initialState.Position = Vector3.zero;
+            initialState.Velocity = Vector3.zero;
+            initialState.Rotation = Quaternion.identity;
+            initialState.AngularVelocity = Vector3.zero;
+            initialState.IsHeld = false;
 
             _currentPaddleState = new PaddleState
             {
@@ -67,7 +62,6 @@ namespace Domain.Logic
                 Rotation = Quaternion.identity,
                 AngularVelocity = Vector3.zero
             };
-            _previousPaddleState = _currentPaddleState;
 
             _leftHandState = new HandState
             {
@@ -94,75 +88,58 @@ namespace Domain.Logic
         /// <param name="deltaTime">The time step for the update.</param>
         public void UpdateSimulation(float deltaTime)
         {
-            // Store previous states
-            _previousBallState = _currentBallState;
-            _previousPaddleState = _currentPaddleState;
+            var previousBallState = _ballStateBuffer.GetNext();
+            var currentBallState = _ballStateBuffer.GetNext();
 
-            // Ball holding logic
+            CopyState(previousBallState, currentBallState);
+
             if (_leftHandState.GripPressed)
             {
-                if (!_currentBallState.IsHeld)
+                if (!currentBallState.IsHeld)
                 {
-                    _currentBallState.IsHeld = true;
+                    currentBallState.IsHeld = true;
                 }
 
-                // Update ball position and rotation to follow the left hand
-                _currentBallState.Position = _leftHandState.Position;
-                _currentBallState.Rotation = _leftHandState.Rotation;
+                currentBallState.Position = _leftHandState.Position;
+                currentBallState.Rotation = _leftHandState.Rotation;
             }
             else
             {
-                if (_currentBallState.IsHeld)
+                if (currentBallState.IsHeld)
                 {
-                    _currentBallState.IsHeld = false;
+                    currentBallState.IsHeld = false;
 
-                    // Calculate release velocity
                     Vector3 releaseVelocity = _leftHandState.Velocity;
                     Vector3 angularVelocity = _leftHandState.AngularVelocity;
 
-                    // Ensure a minimum upward velocity
                     if (releaseVelocity.y < _physicsConfig.Ball.MinThrowVelocity)
                     {
                         releaseVelocity.y = _physicsConfig.Ball.MinThrowVelocity;
                     }
 
-                    // Clamp to maximum throw velocity
                     float maxVelocity = _physicsConfig.Ball.MaxThrowVelocity;
                     if (releaseVelocity.magnitude > maxVelocity)
                     {
                         releaseVelocity = releaseVelocity.normalized * maxVelocity;
                     }
 
-                    _currentBallState.Velocity = releaseVelocity;
-                    _currentBallState.AngularVelocity = angularVelocity;
+                    currentBallState.Velocity = releaseVelocity;
+                    currentBallState.AngularVelocity = angularVelocity;
                 }
             }
 
-            if (!_currentBallState.IsHeld)
+            if (!currentBallState.IsHeld)
             {
-                // Make new copy of state when change is expected. TODO: Improve allocation handling, pool?
-                _currentBallState = new BallState
-                {
-                    Position = _currentBallState.Position,
-                    Rotation = _currentBallState.Rotation,
-                    Velocity = _currentBallState.Velocity,
-                    AngularVelocity = _currentBallState.AngularVelocity,
-                    IsHeld = _currentBallState.IsHeld,
-                };
+                _physicsEngine.Integrate(ref currentBallState, deltaTime);
 
-                // Physics integration
-                _physicsEngine.Integrate(ref _currentBallState, deltaTime);
-
-                // Collision detection
                 CollisionData collisionData = _collisionSystem.DetectCollision(
-                    _previousBallState, _currentBallState,
-                    _previousPaddleState, _currentPaddleState,
+                    previousBallState, currentBallState,
+                    _currentPaddleState, _currentPaddleState,
                     deltaTime);
 
-                // Collision resolution if needed
                 if (collisionData.Detected)
                 {
-                    _collisionSystem.ResolveCollision(ref _currentBallState, _currentPaddleState, collisionData);
+                    _collisionSystem.ResolveCollision(ref currentBallState, _currentPaddleState, collisionData);
                 }
             }
             else
@@ -170,8 +147,7 @@ namespace Domain.Logic
                 Debug.Log($"{LOG_PREFIX}Ball is held. Skipping physics integration.");
             }
 
-            // Update visuals
-            _renderer.UpdateBallVisuals(_currentBallState);
+            _renderer.UpdateBallVisuals(currentBallState);
             _renderer.UpdatePaddleVisuals(_currentPaddleState);
         }
 
@@ -181,7 +157,7 @@ namespace Domain.Logic
         /// <returns>The current ball state.</returns>
         public BallState GetCurrentBallState()
         {
-            return _currentBallState;
+            return _ballStateBuffer.GetNext();
         }
 
         /// <summary>
@@ -208,7 +184,8 @@ namespace Domain.Logic
         /// <param name="ballState">The new ball state.</param>
         public void SetCurrentBallState(BallState ballState)
         {
-            _currentBallState = ballState;
+            var currentBallState = _ballStateBuffer.GetNext();
+            CopyState(ballState, currentBallState);
         }
 
         /// <summary>
@@ -245,6 +222,20 @@ namespace Domain.Logic
         public void SetRightHandState(HandState handState)
         {
             _rightHandState = handState;
+        }
+
+        /// <summary>
+        /// Copies the state data from one BallState to another.
+        /// </summary>
+        /// <param name="source">The source BallState.</param>
+        /// <param name="target">The target BallState.</param>
+        private void CopyState(BallState source, BallState target)
+        {
+            target.Position = source.Position;
+            target.Velocity = source.Velocity;
+            target.Rotation = source.Rotation;
+            target.AngularVelocity = source.AngularVelocity;
+            target.IsHeld = source.IsHeld;
         }
     }
 }
