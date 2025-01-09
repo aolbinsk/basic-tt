@@ -11,6 +11,7 @@ namespace Domain.Physics
     public class BallPhysics
     {
         private readonly IPhysicsConfig _config;
+        private readonly float _dragFactor;
 
         /// <summary>
         /// Initializes a new instance of the BallPhysics class with the specified physics configuration.
@@ -19,6 +20,7 @@ namespace Domain.Physics
         public BallPhysics(IPhysicsConfig config)
         {
             _config = config;
+            _dragFactor = 0.5f * _config.Air.Density * _config.Ball.DragCoefficient * _config.Ball.CrossSectionalArea;
         }
 
         /// <summary>
@@ -74,10 +76,7 @@ namespace Domain.Physics
             Vector3 v = state.Velocity;
 
             // Drag
-            Vector3 dragForce = -0.5f * _config.Air.Density
-                                      * _config.Ball.DragCoefficient
-                                      * _config.Ball.CrossSectionalArea
-                                      * v.magnitude * v;
+            Vector3 dragForce = -_dragFactor * v.magnitude * v;
 
             // Magnus
             Vector3 magnusForce = _config.Air.MagnusCoefficient * Vector3.Cross(state.AngularVelocity, v);
