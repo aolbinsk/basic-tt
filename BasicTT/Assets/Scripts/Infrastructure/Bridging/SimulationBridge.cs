@@ -47,11 +47,11 @@ namespace Infrastructure.Bridging
 
         private PaddleState _currentPaddleState;
         private BallState _currentBallState;
+        private HandState _leftHandState;
+        private HandState _rightHandState;
 
         private float _accumulatedTime;
-        private Transform _leftController;
-        private Transform _rightController;
-        private const float SubStepInterval = 1.0f / (3*120);
+        private const float SubStepInterval = 1.0f / (3 * 120);
 
         private const string LOG_PREFIX = "[SimulationBridge] ";
 
@@ -63,6 +63,10 @@ namespace Infrastructure.Bridging
         private void FixedUpdate()
         {
             UpdateInput();
+
+            // Set the updated hand states in the simulation
+            _simulation.SetLeftHandState(_leftHandState);
+            _simulation.SetRightHandState(_rightHandState);
 
             // Set the updated paddle and ball states in the simulation
             _simulation.SetCurrentPaddleState(_currentPaddleState);
@@ -119,9 +123,11 @@ namespace Infrastructure.Bridging
             _currentBallState = _simulation.GetCurrentBallState();
             _currentPaddleState = _simulation.GetCurrentPaddleState();
             
-            _currentBallState.Collider = _ballGameObject.GetComponent<SphereCollider>();
             _currentPaddleState.ForehandCollider = _forehandPaddleCollider;
             _currentPaddleState.BackhandCollider = _backhandPaddleCollider;
+
+            _leftHandState = new HandState();
+            _rightHandState = new HandState();
         }
 
         /// <summary>
@@ -142,52 +148,25 @@ namespace Infrastructure.Bridging
         /// </summary>
         private void UpdateInput()
         {
+            // Update left hand state
+            _leftHandState.Position = _inputManager.ReadFilteredLeftPosition();
+            _leftHandState.Rotation = _inputManager.ReadFilteredLeftRotation();
+            _leftHandState.Velocity = _inputManager.GetLeftControllerVelocity();
+            _leftHandState.AngularVelocity = _inputManager.GetLeftControllerAngularVelocity();
+            _leftHandState.GripPressed = _inputManager.LeftGripPressed;
+
+            // Update right hand state
+            _rightHandState.Position = _inputManager.ReadFilteredRightPosition();
+            _rightHandState.Rotation = _inputManager.ReadFilteredRightRotation();
+            _rightHandState.Velocity = _inputManager.GetRightControllerVelocity();
+            _rightHandState.AngularVelocity = _inputManager.GetRightControllerAngularVelocity();
+            _rightHandState.GripPressed = _inputManager.RightGripPressed;
+
             // Update paddle state
-            _currentPaddleState.Position = _inputManager.ReadFilteredRightPosition();
-            _currentPaddleState.Rotation = _inputManager.ReadFilteredRightRotation();
-            _currentPaddleState.Velocity = _inputManager.GetRightControllerVelocity();
-            _currentPaddleState.AngularVelocity = _inputManager.GetRightControllerAngularVelocity();
-
-            // Update ball holding logic
-            if (leftControllerGripAction.action.IsPressed())
-            {
-                if (!_currentBallState.IsHeld)
-                {
-                    _currentBallState.IsHeld = true;
-                }
-
-                // Update ball position and rotation to follow the left controller
-                // TODO: Add a new state, leftHandState, to let the simulation do this update.
-                _currentBallState.Position = _inputManager.ReadFilteredLeftPosition();
-                _currentBallState.Rotation = _inputManager.ReadFilteredLeftRotation();
-            }
-            else
-            {
-                if (_currentBallState.IsHeld)
-                {
-                    _currentBallState.IsHeld = false;
-
-                    // Calculate release velocity
-                    var releaseVelocity = _inputManager.GetRightControllerVelocity();
-                    var angularVelocity = _inputManager.GetRightControllerAngularVelocity();
-
-                    // Ensure a minimum upward velocity
-                    if (releaseVelocity.y < _physicsConfig.Ball.MinThrowVelocity)
-                    {
-                        releaseVelocity.y = _physicsConfig.Ball.MinThrowVelocity;
-                    }
-
-                    // Clamp to maximum throw velocity
-                    float maxVelocity = _physicsConfig.Ball.MaxThrowVelocity;
-                    if (releaseVelocity.magnitude > maxVelocity)
-                    {
-                        releaseVelocity = releaseVelocity.normalized * maxVelocity;
-                    }
-
-                    _currentBallState.Velocity = releaseVelocity;
-                    _currentBallState.AngularVelocity = angularVelocity;
-                }
-            }
+            _currentPaddleState.Position = _rightHandState.Position;
+            _currentPaddleState.Rotation = _rightHandState.Rotation;
+            _currentPaddleState.Velocity = _rightHandState.Velocity;
+            _currentPaddleState.AngularVelocity = _rightHandState.AngularVelocity;
         }
 
         /// <summary>

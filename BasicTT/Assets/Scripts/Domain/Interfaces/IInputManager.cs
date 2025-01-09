@@ -55,6 +55,18 @@ namespace Domain.Interfaces
         Vector3 GetRightControllerAngularVelocity();
 
         /// <summary>
+        /// Gets the velocity of the left controller.
+        /// </summary>
+        /// <returns>The velocity as a Vector3.</returns>
+        Vector3 GetLeftControllerVelocity();
+
+        /// <summary>
+        /// Gets the angular velocity of the left controller.
+        /// </summary>
+        /// <returns>The angular velocity as a Vector3.</returns>
+        Vector3 GetLeftControllerAngularVelocity();
+
+        /// <summary>
         /// Stores a sample of left controller input with timestamp.
         /// </summary>
         /// <param name="position">The position of the left controller.</param>

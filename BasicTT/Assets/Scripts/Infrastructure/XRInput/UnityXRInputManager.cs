@@ -29,6 +29,11 @@ namespace Infrastructure.XRInput
         private Vector3 _rightControllerVelocity;
         private Vector3 _rightControllerAngularVelocity;
 
+        private Vector3 _previousLeftPosition;
+        private Quaternion _previousLeftRotation;
+        private Vector3 _leftControllerVelocity;
+        private Vector3 _leftControllerAngularVelocity;
+
         private readonly List<InputSample> _leftInputSamples = new();
 
         public bool LeftGripPressed { get; private set; }
@@ -149,6 +154,18 @@ namespace Infrastructure.XRInput
             return _rightControllerAngularVelocity;
         }
 
+        public Vector3 GetLeftControllerVelocity()
+        {
+            UpdateLeftControllerData();
+            return _leftControllerVelocity;
+        }
+
+        public Vector3 GetLeftControllerAngularVelocity()
+        {
+            UpdateLeftControllerData();
+            return _leftControllerAngularVelocity;
+        }
+
         private void UpdateRightControllerData()
         {
             Vector3 currentPosition = _rightPositionAction.ReadValue<Vector3>();
@@ -160,6 +177,19 @@ namespace Infrastructure.XRInput
 
             _previousRightPosition = currentPosition;
             _previousRightRotation = currentRotation;
+        }
+
+        private void UpdateLeftControllerData()
+        {
+            Vector3 currentPosition = _leftPositionAction.ReadValue<Vector3>();
+            Quaternion currentRotation = _leftRotationAction.ReadValue<Quaternion>();
+
+            float deltaTime = Time.deltaTime;
+            _leftControllerVelocity = (currentPosition - _previousLeftPosition) / deltaTime;
+            _leftControllerAngularVelocity = CalculateAngularVelocity(_previousLeftRotation, currentRotation, deltaTime);
+
+            _previousLeftPosition = currentPosition;
+            _previousLeftRotation = currentRotation;
         }
 
         private void OnLeftGripPressed(InputAction.CallbackContext context)

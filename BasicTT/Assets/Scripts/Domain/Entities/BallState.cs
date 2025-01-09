@@ -11,8 +11,6 @@ namespace Domain.Entities
         public Quaternion Rotation { get; set; }
         public Vector3 Velocity { get; set; }
         public Vector3 AngularVelocity { get; set; }
-        public SphereCollider Collider { get; set; }
-        public GameObject GameObject { get; set; }
 
         /// <summary>
         /// Indicates whether the ball is currently held by the player.

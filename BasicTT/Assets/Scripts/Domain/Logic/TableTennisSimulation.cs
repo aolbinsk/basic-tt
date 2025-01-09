@@ -6,7 +6,7 @@ namespace Domain.Logic
     using Interfaces;
 
     /// <summary>
-    /// High-level orchestrator for the table tennis simulation. Manages the ball and paddle states, physics integration, and collision handling.
+    /// High-level orchestrator for the table tennis simulation. Manages the ball, paddle, and hand states, physics integration, and collision handling.
     /// </summary>
     public class TableTennisSimulation
     {
@@ -17,6 +17,8 @@ namespace Domain.Logic
 
         private BallState _currentBallState;
         private PaddleState _currentPaddleState;
+        private HandState _leftHandState;
+        private HandState _rightHandState;
         private BallState _previousBallState;
         private PaddleState _previousPaddleState;
 
@@ -44,7 +46,7 @@ namespace Domain.Logic
         }
 
         /// <summary>
-        /// Initializes the ball and paddle states.
+        /// Initializes the ball, paddle, and hand states.
         /// </summary>
         private void InitializeStates()
         {
@@ -57,7 +59,7 @@ namespace Domain.Logic
                 IsHeld = false
             };
             _previousBallState = _currentBallState;
-            
+
             _currentPaddleState = new PaddleState
             {
                 Position = Vector3.zero,
@@ -66,6 +68,24 @@ namespace Domain.Logic
                 AngularVelocity = Vector3.zero
             };
             _previousPaddleState = _currentPaddleState;
+
+            _leftHandState = new HandState
+            {
+                Position = Vector3.zero,
+                Rotation = Quaternion.identity,
+                Velocity = Vector3.zero,
+                AngularVelocity = Vector3.zero,
+                GripPressed = false
+            };
+
+            _rightHandState = new HandState
+            {
+                Position = Vector3.zero,
+                Rotation = Quaternion.identity,
+                Velocity = Vector3.zero,
+                AngularVelocity = Vector3.zero,
+                GripPressed = false
+            };
         }
 
         /// <summary>
@@ -78,6 +98,46 @@ namespace Domain.Logic
             _previousBallState = _currentBallState;
             _previousPaddleState = _currentPaddleState;
 
+            // Ball holding logic
+            if (_leftHandState.GripPressed)
+            {
+                if (!_currentBallState.IsHeld)
+                {
+                    _currentBallState.IsHeld = true;
+                }
+
+                // Update ball position and rotation to follow the left hand
+                _currentBallState.Position = _leftHandState.Position;
+                _currentBallState.Rotation = _leftHandState.Rotation;
+            }
+            else
+            {
+                if (_currentBallState.IsHeld)
+                {
+                    _currentBallState.IsHeld = false;
+
+                    // Calculate release velocity
+                    Vector3 releaseVelocity = _leftHandState.Velocity;
+                    Vector3 angularVelocity = _leftHandState.AngularVelocity;
+
+                    // Ensure a minimum upward velocity
+                    if (releaseVelocity.y < _physicsConfig.Ball.MinThrowVelocity)
+                    {
+                        releaseVelocity.y = _physicsConfig.Ball.MinThrowVelocity;
+                    }
+
+                    // Clamp to maximum throw velocity
+                    float maxVelocity = _physicsConfig.Ball.MaxThrowVelocity;
+                    if (releaseVelocity.magnitude > maxVelocity)
+                    {
+                        releaseVelocity = releaseVelocity.normalized * maxVelocity;
+                    }
+
+                    _currentBallState.Velocity = releaseVelocity;
+                    _currentBallState.AngularVelocity = angularVelocity;
+                }
+            }
+
             if (!_currentBallState.IsHeld)
             {
                 // Make new copy of state when change is expected. TODO: Improve allocation handling, pool?
@@ -87,11 +147,9 @@ namespace Domain.Logic
                     Rotation = _currentBallState.Rotation,
                     Velocity = _currentBallState.Velocity,
                     AngularVelocity = _currentBallState.AngularVelocity,
-                    GameObject = _currentBallState.GameObject,
                     IsHeld = _currentBallState.IsHeld,
-                    Collider = _currentBallState.Collider,
                 };
-                
+
                 // Physics integration
                 _physicsEngine.Integrate(ref _currentBallState, deltaTime);
 
@@ -113,7 +171,8 @@ namespace Domain.Logic
             }
 
             // Update visuals
-            //_renderer.UpdateBallVisuals(_currentBallState);
+            _renderer.UpdateBallVisuals(_currentBallState);
+            _renderer.UpdatePaddleVisuals(_currentPaddleState);
         }
 
         /// <summary>
@@ -150,6 +209,42 @@ namespace Domain.Logic
         public void SetCurrentBallState(BallState ballState)
         {
             _currentBallState = ballState;
+        }
+
+        /// <summary>
+        /// Gets the current state of the left hand.
+        /// </summary>
+        /// <returns>The current left hand state.</returns>
+        public HandState GetLeftHandState()
+        {
+            return _leftHandState;
+        }
+
+        /// <summary>
+        /// Gets the current state of the right hand.
+        /// </summary>
+        /// <returns>The current right hand state.</returns>
+        public HandState GetRightHandState()
+        {
+            return _rightHandState;
+        }
+
+        /// <summary>
+        /// Sets the current state of the left hand.
+        /// </summary>
+        /// <param name="handState">The new left hand state.</param>
+        public void SetLeftHandState(HandState handState)
+        {
+            _leftHandState = handState;
+        }
+
+        /// <summary>
+        /// Sets the current state of the right hand.
+        /// </summary>
+        /// <param name="handState">The new right hand state.</param>
+        public void SetRightHandState(HandState handState)
+        {
+            _rightHandState = handState;
         }
     }
 }
