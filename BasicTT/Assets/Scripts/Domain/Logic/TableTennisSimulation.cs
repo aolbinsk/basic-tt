@@ -1,6 +1,7 @@
 using UnityEngine;
 using Domain.Entities;
 using Domain.Interfaces;
+using Domain.Physics;
 using Domain.Utilities;
 
 namespace Domain.Logic
@@ -15,12 +16,12 @@ namespace Domain.Logic
         private readonly IRenderer _renderer;
         private readonly IPhysicsConfig _physicsConfig;
 
-        private readonly CircularBuffer<BallState> _ballStateBuffer = new (2);
+        private readonly CircularBuffer<BallState> _ballStateBuffer = new(2);
         private PaddleState _currentPaddleState;
         private HandState _leftHandState;
         private HandState _rightHandState;
 
-        private const string LOG_PREFIX = "[TableTennisSimulation] ";
+        private const string LOGPrefix = "[TableTennisSimulation] ";
 
         /// <summary>
         /// Initializes a new instance of the TableTennisSimulation class.
@@ -95,36 +96,17 @@ namespace Domain.Logic
 
             if (_leftHandState.GripPressed)
             {
-                if (!currentBallState.IsHeld)
-                {
-                    currentBallState.IsHeld = true;
-                }
-
-                currentBallState.Position = _leftHandState.Position;
-                currentBallState.Rotation = _leftHandState.Rotation;
+                BallThrowLogic.HoldBall(
+                    ref currentBallState, _leftHandState.Position, _leftHandState.Rotation);
             }
             else
             {
                 if (currentBallState.IsHeld)
                 {
-                    currentBallState.IsHeld = false;
-
-                    Vector3 releaseVelocity = _leftHandState.Velocity;
-                    Vector3 angularVelocity = _leftHandState.AngularVelocity;
-
-                    if (releaseVelocity.y < _physicsConfig.Ball.MinThrowVelocity)
-                    {
-                        releaseVelocity.y = _physicsConfig.Ball.MinThrowVelocity;
-                    }
-
-                    float maxVelocity = _physicsConfig.Ball.MaxThrowVelocity;
-                    if (releaseVelocity.magnitude > maxVelocity)
-                    {
-                        releaseVelocity = releaseVelocity.normalized * maxVelocity;
-                    }
-
-                    currentBallState.Velocity = releaseVelocity;
-                    currentBallState.AngularVelocity = angularVelocity;
+                    // Ball was held and now is being released
+                    BallThrowLogic.ReleaseBall(
+                        ref currentBallState, _leftHandState.Velocity,
+                        _leftHandState.AngularVelocity, _physicsConfig);
                 }
             }
 
@@ -144,7 +126,7 @@ namespace Domain.Logic
             }
             else
             {
-                Debug.Log($"{LOG_PREFIX}Ball is held. Skipping physics integration.");
+                Debug.Log($"{LOGPrefix}Ball is held. Skipping physics integration.");
             }
 
             _renderer.UpdateBallVisuals(currentBallState);
