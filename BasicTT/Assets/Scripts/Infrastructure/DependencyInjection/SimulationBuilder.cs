@@ -28,6 +28,7 @@ namespace Infrastructure.DependencyInjection
         private RoomBuilder _roomBuilder;
         private GameObject _ball;
         private GameObject _paddle;
+        private PaddleCalibration _paddleCalibration;
 
         /// <summary>
         /// Provides the initialized renderer.
@@ -53,6 +54,12 @@ namespace Infrastructure.DependencyInjection
         /// Provides the paddle GameObject.
         /// </summary>
         public GameObject GetPaddleGameObject() => _paddle;
+        
+        /// <summary>
+        /// Provides the paddle calibration data.
+        /// </summary>
+        /// <returns></returns>
+        public PaddleCalibration GetPaddleCalibration() => _paddleCalibration;
 
         /// <summary>
         /// Installs all required dependencies for the table tennis simulation.
@@ -83,6 +90,10 @@ namespace Infrastructure.DependencyInjection
             _ball = _equipmentBuilder.BuildBall();
             _paddle = _equipmentBuilder.BuildPaddle();
             _equipmentBuilder.BuildTableAndNet();
+
+            // Load paddle calibration data
+            string calibrationFilePath = "Assets/PaddleCalibrations/BonwasylViscaria.json";
+            _paddleCalibration = PaddleCalibration.LoadFromFile(calibrationFilePath);
 
             // Initialize PlayerSetupBuilder after _ball and _paddle are assigned
             _playerSetupBuilder = new PlayerSetupBuilder(_physicsConfig, xrOriginTransform, _ball, _paddle);

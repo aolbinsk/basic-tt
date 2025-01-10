@@ -1,9 +1,11 @@
 using System.Diagnostics;
+using Domain.Config;
 using UnityEngine;
 using Domain.Entities;
 using Domain.Interfaces;
 using Domain.Logic;
 using Infrastructure.DependencyInjection;
+using Infrastructure.Utilities;
 using Infrastructure.XRInput;
 using Unity.XR.CoreUtils;
 using UnityEngine.InputSystem;
@@ -44,6 +46,7 @@ namespace Infrastructure.Bridging
         private BoxCollider _forehandPaddleCollider;
         private BoxCollider _backhandPaddleCollider;
         private IPhysicsConfig _physicsConfig;
+        private PaddleCalibration _paddleCalibration;
 
         private PaddleState _currentPaddleState;
         private BallState _currentBallState;
@@ -111,6 +114,7 @@ namespace Infrastructure.Bridging
             _renderer = installer.GetRenderer();
             _ballGameObject = installer.GetBallGameObject();
             _paddleGameObject = installer.GetPaddleGameObject();
+            _paddleCalibration = installer.GetPaddleCalibration();
             Debug.Assert(_ballGameObject != null, LOG_PREFIX + "Ball GameObject not found.");
             Debug.Assert(_paddleGameObject != null, LOG_PREFIX + "Paddle GameObject not found.");
             
@@ -162,9 +166,12 @@ namespace Infrastructure.Bridging
             _rightHandState.AngularVelocity = _inputManager.GetRightControllerAngularVelocity();
             _rightHandState.GripPressed = _inputManager.RightGripPressed;
 
-            // Update paddle state
-            _currentPaddleState.Position = _rightHandState.Position;
-            _currentPaddleState.Rotation = _rightHandState.Rotation;
+            // Apply calibration
+            var calibratedPaddlePositionAndRotation = CalibrationUtility.ApplyCalibration(
+                _rightHandState.Position, _rightHandState.Rotation, _paddleCalibration);
+
+            _currentPaddleState.Position = calibratedPaddlePositionAndRotation.Position;
+            _currentPaddleState.Rotation = calibratedPaddlePositionAndRotation.Rotation;
             _currentPaddleState.Velocity = _rightHandState.Velocity;
             _currentPaddleState.AngularVelocity = _rightHandState.AngularVelocity;
         }

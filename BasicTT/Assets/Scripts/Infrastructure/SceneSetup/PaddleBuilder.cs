@@ -5,6 +5,7 @@ namespace Infrastructure.SceneSetup
 {
     /// <summary>
     /// Responsible for constructing the paddle GameObject with proper physics, visuals, and configuration.
+    /// Builds paddle in standard orientation: head centered at origin, handle along -X, forehand facing +Z.
     /// </summary>
     public class PaddleBuilder
     {
@@ -38,37 +39,17 @@ namespace Infrastructure.SceneSetup
 
             // 3) Scale the paddle head according to config
             paddleHead.transform.localScale = new Vector3(
-                _config.Paddle.WidthMeters,
-                _config.Paddle.ThicknessMeters,
-                _config.Paddle.LengthMeters
+                _config.Paddle.HeadLengthMeters, // Along z-axis
+                _config.Paddle.HeadThicknessMeters, // Along y-axis
+                _config.Paddle.HeadWidthMeters // Along x-axis
             );
 
-            // 4) Position the paddle head
-            float halfLength = _config.Paddle.LengthMeters * 0.5f;
-            paddleHead.transform.localPosition = new Vector3(0f, 0f, halfLength * 0.5f);
+            // 4) Position the paddle head to align with the handle center
+            float halfLength = _config.Paddle.HeadLengthMeters * 0.5f;
+            paddleHead.transform.localPosition = new Vector3(0f, 0f, -halfLength * 0.5f);
 
-            // 5) Remove existing collider and add forehand and backhand side colliders
-            Object.Destroy(paddleHead.GetComponent<BoxCollider>());
-
-            // Forehand side collider
-            var forehandSide = new GameObject("ForehandSide");
-            forehandSide.transform.SetParent(paddleHead.transform, false);
-            forehandSide.transform.localPosition = Vector3.zero;
-            forehandSide.transform.localScale = Vector3.one;
-            var forehandCollider = forehandSide.AddComponent<BoxCollider>();
-            forehandCollider.size = new Vector3(0.5f, 1f, 1f);
-            forehandCollider.center = new Vector3(-0.25f, 0f, 0f);
-            forehandCollider.material = _config.Paddle.Material;
-
-            // Backhand side collider
-            var backhandSide = new GameObject("BackhandSide");
-            backhandSide.transform.SetParent(paddleHead.transform, false);
-            backhandSide.transform.localPosition = Vector3.zero;
-            backhandSide.transform.localScale = Vector3.one;
-            var backhandCollider = backhandSide.AddComponent<BoxCollider>();
-            backhandCollider.size = new Vector3(0.5f, 1f, 1f);
-            backhandCollider.center = new Vector3(0.25f, 0f, 0f);
-            backhandCollider.material = _config.Paddle.Material;
+            // 5) Adjust the hit zones
+            SetupHitZones(paddleHead);
 
             // 6) Configure the paddle head material
             var headRenderer = paddleHead.GetComponent<Renderer>();
@@ -90,14 +71,41 @@ namespace Infrastructure.SceneSetup
             float handleLength = _config.Paddle.HandleLengthMeters;
             paddleHandle.transform.localScale = new Vector3(handleRadius * 2f, handleLength * 0.5f, handleRadius * 2f);
 
-            float handleOffsetZ = halfLength + (handleLength * 0.5f);
+            // Align handle along the z-axis, centered under the paddle head
+            float handleOffsetZ = -halfLength - (handleLength * 0.5f);
             paddleHandle.transform.localPosition = new Vector3(0f, 0f, handleOffsetZ);
-            paddleHandle.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            paddleHandle.transform.localRotation = Quaternion.Euler(90f, 0f, 0f); // Align along z-axis
 
-            var handleCollider = paddleHandle.AddComponent<CapsuleCollider>();
-            handleCollider.material = _config.Paddle.Material;
+            // 8) Configure the handle material
+            var handleRenderer = paddleHandle.GetComponent<Renderer>();
+            if (handleRenderer != null)
+            {
+                var handleMat = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+                {
+                    color = Color.gray
+                };
+                handleRenderer.material = handleMat;
+            }
 
             return paddleRoot;
+        }
+
+        private void SetupHitZones(GameObject paddleHead)
+        {
+            // Add hit zones as child colliders to the paddle head
+            var forehandZone = new GameObject("ForehandSide");
+            forehandZone.transform.SetParent(paddleHead.transform, false);
+            forehandZone.transform.localPosition = new Vector3(-0.5f, 0f, 0f); // Positioned on the left
+            forehandZone.transform.localScale = Vector3.one;
+            var forehandCollider = forehandZone.AddComponent<BoxCollider>();
+            forehandCollider.size = new Vector3(0.5f, 1f, 1f);
+
+            var backhandZone = new GameObject("BackhandSide");
+            backhandZone.transform.SetParent(paddleHead.transform, false);
+            backhandZone.transform.localPosition = new Vector3(0.5f, 0f, 0f); // Positioned on the right
+            backhandZone.transform.localScale = Vector3.one;
+            var backhandCollider = backhandZone.AddComponent<BoxCollider>();
+            backhandCollider.size = new Vector3(0.5f, 1f, 1f);
         }
     }
 }

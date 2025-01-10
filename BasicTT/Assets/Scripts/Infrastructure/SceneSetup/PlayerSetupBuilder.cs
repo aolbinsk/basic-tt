@@ -1,5 +1,6 @@
 using UnityEngine;
 using Domain.Interfaces;
+using Domain.Config;
 
 namespace Infrastructure.SceneSetup
 {
@@ -21,9 +22,9 @@ namespace Infrastructure.SceneSetup
         /// <param name="ball">The ball GameObject.</param>
         /// <param name="paddle">The paddle GameObject.</param>
         public PlayerSetupBuilder(
-            IPhysicsConfig config, 
-            Transform xrOriginTransform, 
-            GameObject ball, 
+            IPhysicsConfig config,
+            Transform xrOriginTransform,
+            GameObject ball,
             GameObject paddle)
         {
             _config = config;
@@ -54,20 +55,19 @@ namespace Infrastructure.SceneSetup
         }
 
         /// <summary>
-        /// Attaches the paddle to the right controller.
+        /// Attaches the paddle to the right controller and applies calibration offsets.
         /// </summary>
         private void AttachPaddleToController()
         {
             var rightControllerTransform = _xrOriginTransform.Find("Camera Offset/Right Controller");
             if (rightControllerTransform != null)
             {
+                // First parent the paddle to get proper hierarchy
                 _paddle.transform.SetParent(rightControllerTransform, false);
-                //_paddle.transform.localPosition = Vector3.zero;
-                //_paddle.transform.localRotation = Quaternion.identity;
             }
             else
             {
-                Debug.LogError("RightHand transform not found under XR Origin.");
+                Debug.LogError("[PlayerSetupBuilder] RightHand transform not found under XR Origin.");
             }
         }
 
