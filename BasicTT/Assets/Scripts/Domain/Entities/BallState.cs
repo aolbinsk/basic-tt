@@ -16,5 +16,17 @@ namespace Domain.Entities
         /// Indicates whether the ball is currently held by the player.
         /// </summary>
         public bool IsHeld { get; set; }
+        
+        public BallState Clone()
+        {
+            return new BallState
+            {
+                Position = Position,
+                Velocity = Velocity,
+                AngularVelocity = AngularVelocity,
+                Rotation = Rotation,
+                IsHeld = IsHeld
+            };
+        }        
     }
 }

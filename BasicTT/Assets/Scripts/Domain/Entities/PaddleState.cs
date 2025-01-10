@@ -13,5 +13,16 @@ namespace Domain.Entities
         public Vector3 AngularVelocity { get; set; }
         public BoxCollider ForehandCollider { get; set; }
         public BoxCollider BackhandCollider { get; set; }
+                
+        public PaddleState Clone()
+        {
+            return new PaddleState
+            {
+                Position = Position,
+                Rotation = Rotation,
+                Velocity = Velocity,
+                AngularVelocity = AngularVelocity,
+            };
+        }
     }
 }
