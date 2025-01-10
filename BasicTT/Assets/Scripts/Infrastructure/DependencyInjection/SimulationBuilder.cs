@@ -54,7 +54,7 @@ namespace Infrastructure.DependencyInjection
         /// Provides the paddle GameObject.
         /// </summary>
         public GameObject GetPaddleGameObject() => _paddle;
-        
+
         /// <summary>
         /// Provides the paddle calibration data.
         /// </summary>
@@ -71,15 +71,14 @@ namespace Infrastructure.DependencyInjection
 
             if (useCustomPhysics)
             {
-                // Create physics engine and collision system based on configuration
                 _physicsEngine = new CustomPhysicsEngine(_physicsConfig);
-                _collisionSystem = new CollisionDetectionSystem(_physicsConfig);
             }
             else
             {
                 _physicsEngine = new UnityPhysicsEngine();
-                _collisionSystem = new UnityCollisionSystem();
             }
+
+            _collisionSystem = new CollisionDetectionSystem(_physicsConfig);
 
             // Initialize scene builders
             _roomBuilder = new RoomBuilder(_physicsConfig);

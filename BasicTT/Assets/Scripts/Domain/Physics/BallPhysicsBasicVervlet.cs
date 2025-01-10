@@ -8,16 +8,16 @@ namespace Domain.Physics
     /// Handles the physics integration of the ball using Velocity Verlet integration for improved stability.
     /// Includes position, velocity, spin, air resistance, and Magnus force calculations.
     /// </summary>
-    public class BallPhysics
+    public class BallPhysicsBasicVervlet : IBallPhysics
     {
         private readonly IPhysicsConfig _config;
         private readonly float _dragFactor;
 
         /// <summary>
-        /// Initializes a new instance of the BallPhysics class with the specified physics configuration.
+        /// Initializes a new instance of the BallPhysicsBasicVervlet class with the specified physics configuration.
         /// </summary>
         /// <param name="config">The physics configuration parameters.</param>
-        public BallPhysics(IPhysicsConfig config)
+        public BallPhysicsBasicVervlet(IPhysicsConfig config)
         {
             _config = config;
             _dragFactor = 0.5f * _config.Air.Density * _config.Ball.DragCoefficient * _config.Ball.CrossSectionalArea;

@@ -13,9 +13,5 @@ namespace Infrastructure.UnityPhysics
         public void Integrate(ref BallState ballState, float deltaTime)
         {
         }
-
-        public void Integrate(ref PaddleState paddleState, float deltaTime)
-        {
-        }
     }
 }
