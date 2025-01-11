@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using Domain.Physics;
 using Domain.Entities;
@@ -50,20 +51,12 @@ namespace Tests.Domain.Physics
         [Test]
         public void DetectCollision_BallHitsPaddle_ReturnsTrue()
         {
-            PhysicsConfig physicsConfig = new PhysicsConfig();
-            PaddleBuilder paddleBuilder = new PaddleBuilder(physicsConfig);
-            GameObject paddle = paddleBuilder.BuildPaddle();
-            var forehandPaddleCollider = paddle.transform.Find("PaddleHead/ForehandSide")?.GetComponent<BoxCollider>();
-            Assert.IsNotNull(forehandPaddleCollider, "Forehand paddle collider not found.");
-            paddle.transform.position = new Vector3(0f, 0f, 0f);
-            
             // Arrange
             _previousBallState.Position = new Vector3(0f, 1f, 0f);
             _currentBallState.Position = new Vector3(0f, 0f, 0f); // Moving towards paddle
             _currentBallState.Velocity = new Vector3(0f, -1f, 0f);
 
             _currentPaddleState.Position = new Vector3(0f, 0f, 0f);
-            _currentPaddleState.ForehandCollider = forehandPaddleCollider;
 
             // Act
             var collisionData = _collisionDetectionSystem.DetectCollision(

@@ -22,9 +22,8 @@ namespace Tests.Domain.Physics
         private CollisionDetectionSystem _collisionDetectionSystem;
 
         // We can define some typical "global" parameters for the tests:
-        private float _reactionDistance = 1.0f; // Ball travels from z = -1.0 to z = 0f for collisions
-        private float[] _fixedDeltaTimes = { 0.005f, 0.01f, 0.016f, 0.02f };
-        private int[] _substepRates = { 1, 2, 4, 8 };
+        private readonly float[] _fixedDeltaTimes = { 0.005f, 0.01f, 0.016f, 0.02f };
+        private readonly int[] _substepRates = { 1, 2, 4, 8 };
 
         /// <summary>
         /// A small struct to capture parameters for a single test scenario.
@@ -205,27 +204,14 @@ namespace Tests.Domain.Physics
             };
 
             // 3) Create a paddle below the ball
-            var paddleGO = new GameObject("TestPaddle");
-            var paddleCollider = paddleGO.AddComponent<BoxCollider>();
-            // This might represent a “flat” area that collides with the ball from below:
-            paddleCollider.size = new Vector3(0.2f, 0.02f, 0.2f);
-            paddleCollider.center = Vector3.zero;
-
             var paddleState = new PaddleState
             {
                 Position = new Vector3(0f, paddleY, 0f),
                 // If you want the paddle to move upwards, velocity.y = +scenario.InitialPaddleSpeed
                 Velocity = new Vector3(0f, scenario.InitialPaddleSpeed, 0f),
                 AngularVelocity = Vector3.zero,
-                Rotation = Quaternion.identity,
-                ForehandCollider = paddleCollider,
-                BackhandCollider = null
+                Rotation = Quaternion.identity
             };
-
-            paddleGO.transform.position = paddleState.Position;
-
-            // Optionally log collider transform
-            Debug.Log($"[PaddleCollider] localSize={paddleCollider.size}, pos={paddleGO.transform.position}");
 
             // 4) Sub-step settings:
             float substepDt = fixedDeltaTime / substepRate;
@@ -261,7 +247,6 @@ namespace Tests.Domain.Physics
 
                 // Move the paddle
                 paddleState.Position += paddleState.Velocity * substepDt;
-                paddleGO.transform.position = paddleState.Position;
 
                 // Debug info
                 if (i < 5 || i % 10 == 0)
@@ -283,14 +268,12 @@ namespace Tests.Domain.Physics
                     collisionSubstep = i;
                     Debug.Log(
                         $"[SimulateVerticalScenario] COLLISION DETECTED substep={i}, time={collisionTime:F3}, scenario={scenario}");
-                    Object.DestroyImmediate(paddleGO);
                     return true;
                 }
             }
 
             Debug.Log(
                 $"[SimulateVerticalScenario] NO collision after {totalSubsteps} substeps (time up to {simDuration:F2}s). scenario={scenario}");
-            Object.DestroyImmediate(paddleGO);
             return false;
         }
 

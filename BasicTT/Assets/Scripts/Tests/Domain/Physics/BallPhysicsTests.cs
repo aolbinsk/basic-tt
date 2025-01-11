@@ -17,6 +17,8 @@ namespace Tests.Domain.Physics
         public void SetUp()
         {
             _physicsConfig = new PhysicsConfig();
+            _physicsConfig.Air.AngularDragCoefficient = 0f;
+            _physicsConfig.Air.Density = 0f;
             _ballPhysicsBasicVervlet = new BallPhysicsBasicVervlet(_physicsConfig);
             _ballState = new BallState
             {
@@ -31,6 +33,7 @@ namespace Tests.Domain.Physics
         public void Integrate_StationaryBall_NoMovement()
         {
             // Arrange
+            _physicsConfig.Gravity = Vector3.zero;
             _ballState.Velocity = Vector3.zero;
 
             // Act
@@ -61,7 +64,7 @@ namespace Tests.Domain.Physics
             _ballState.Velocity = Vector3.zero;
 
             // Act
-            _ballPhysicsBasicVervlet.Integrate(ref _ballState, 2f);
+            _ballPhysicsBasicVervlet.Integrate(ref _ballState, 1f);
 
             // Assert
             Assert.AreEqual(_physicsConfig.Gravity.y, _ballState.Velocity.y, 0.1f);

@@ -7,10 +7,10 @@ namespace Domain.Entities
     /// </summary>
     public class BallState
     {
-        public Vector3 Position { get; set; }
-        public Quaternion Rotation { get; set; }
-        public Vector3 Velocity { get; set; }
-        public Vector3 AngularVelocity { get; set; }
+        public Vector3 Position { get; set; } = Vector3.zero;
+        public Quaternion Rotation { get; set; } = Quaternion.identity;
+        public Vector3 Velocity { get; set; } = Vector3.zero;
+        public Vector3 AngularVelocity { get; set; } = Vector3.zero;
 
         /// <summary>
         /// Indicates whether the ball is currently held by the player.

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using Domain.Physics;
 using Domain.Entities;
@@ -14,11 +15,23 @@ namespace Tests.Domain.Physics
     public class BallThrowTests
     {
         private PhysicsConfig _physicsConfig;
+        private TableTennisSimulation _simulation;
 
         [SetUp]
         public void SetUp()
         {
             _physicsConfig = new PhysicsConfig();
+
+            // Create mock objects for simulation dependencies
+            var mockRenderer = new UnityRenderer(new GameObject(), new GameObject());
+            var collisionSystem = new CollisionDetectionSystem(_physicsConfig);
+            var physicsEngine = new CustomPhysicsEngine(_physicsConfig);
+
+            _simulation = new TableTennisSimulation(
+                physicsEngine,
+                collisionSystem,
+                mockRenderer,
+                _physicsConfig);
         }
 
         // Test Case A: Minimal Release Velocity
@@ -34,11 +47,17 @@ namespace Tests.Domain.Physics
                 AngularVelocity = Vector3.zero
             };
 
-            var controllerVelocity = new Vector3(0f, 0.05f, 0f); // Below minimum
-            var controllerAngularVelocity = Vector3.zero;
+            var controllerState = new ControllerState
+            {
+                Velocity = new Vector3(0f, 0.05f, 0f), // Below minimum threshold
+                AngularVelocity = Vector3.zero,
+                GripPressed = true,
+                Position = Vector3.zero,
+                Rotation = Quaternion.identity
+            };
 
             // Act
-            BallThrowLogic.ReleaseBall(ref ball, controllerVelocity, controllerAngularVelocity, _physicsConfig);
+            BallThrowLogic.ReleaseBall(ref ball, controllerState, _physicsConfig);
 
             // Assert
             Assert.IsFalse(ball.IsHeld, "Ball should no longer be held.");
@@ -60,15 +79,21 @@ namespace Tests.Domain.Physics
                 AngularVelocity = Vector3.zero
             };
 
-            var controllerVelocity = new Vector3(0f, 2f, 0f);
-            var controllerAngularVelocity = Vector3.zero;
+            var controllerState = new ControllerState
+            {
+                Velocity = new Vector3(0f, 2f, 0f),
+                AngularVelocity = Vector3.zero,
+                GripPressed = true,
+                Position = Vector3.zero,
+                Rotation = Quaternion.identity
+            };
 
             // Act
-            BallThrowLogic.ReleaseBall(ref ball, controllerVelocity, controllerAngularVelocity, _physicsConfig);
+            BallThrowLogic.ReleaseBall(ref ball, controllerState, _physicsConfig);
 
             // Assert
             Assert.IsFalse(ball.IsHeld, "Ball should no longer be held.");
-            Assert.AreEqual(controllerVelocity, ball.Velocity, "Ball velocity should match controller velocity.");
+            Assert.AreEqual(controllerState.Velocity, ball.Velocity, "Ball velocity should match controller velocity.");
             Assert.AreEqual(Vector3.zero, ball.AngularVelocity, "No spin should be imparted.");
         }
 
@@ -84,12 +109,18 @@ namespace Tests.Domain.Physics
                 Velocity = Vector3.zero,
                 AngularVelocity = Vector3.zero
             };
-
-            var controllerVelocity = new Vector3(0f, 10f, 0f); // Exceeds max velocity
-            var controllerAngularVelocity = Vector3.zero;
+            
+            var controllerState = new ControllerState
+            {
+                Velocity = new Vector3(0f, 10f, 0f), // Exceeds max velocity,
+                AngularVelocity = Vector3.zero,
+                GripPressed = true,
+                Position = Vector3.zero,
+                Rotation = Quaternion.identity
+            };
 
             // Act
-            BallThrowLogic.ReleaseBall(ref ball, controllerVelocity, controllerAngularVelocity, _physicsConfig);
+            BallThrowLogic.ReleaseBall(ref ball, controllerState, _physicsConfig);
 
             // Assert
             Assert.IsFalse(ball.IsHeld, "Ball should no longer be held.");
@@ -109,12 +140,18 @@ namespace Tests.Domain.Physics
                 Velocity = Vector3.zero,
                 AngularVelocity = Vector3.zero
             };
-
             var controllerVelocity = new Vector3(0f, 2f, 0f);
             var controllerAngularVelocity = new Vector3(0f, 5f, 0f);
 
             // Act
-            BallThrowLogic.ReleaseBall(ref ball, controllerVelocity, controllerAngularVelocity, _physicsConfig);
+            BallThrowLogic.ReleaseBall(ref ball, new ControllerState
+            {
+                Velocity = controllerVelocity,
+                AngularVelocity = controllerAngularVelocity,
+                GripPressed = true,
+                Position = Vector3.zero,
+                Rotation = Quaternion.identity
+            }, _physicsConfig);
 
             // Assert
             Assert.IsFalse(ball.IsHeld, "Ball should no longer be held.");
@@ -127,31 +164,31 @@ namespace Tests.Domain.Physics
         public void BallThrow_SmoothTransition_ShouldNotCauseSuddenJumps()
         {
             // Arrange
-            var simulation = new TableTennisSimulation(
-                new CustomPhysicsEngine(_physicsConfig),
-                new CollisionDetectionSystem(_physicsConfig),
-                new UnityRenderer(null, null), // Mock renderer
-                _physicsConfig
-            );
-
-            var ball = new BallState
-            {
-                IsHeld = true,
-                Position = new Vector3(0f, 1f, 0f),
-                Velocity = Vector3.zero
-            };
-
             var controllerVelocity = new Vector3(0f, 3f, 0f);
-
-            // Simulate the throw
-            simulation.SetCurrentBallState(ball);
-            BallThrowLogic.ReleaseBall(ref ball, controllerVelocity, Vector3.zero, _physicsConfig);
+            _simulation.SetLeftControllerState(new ControllerState
+            {
+                GripPressed = true,
+                Velocity = controllerVelocity
+            });
 
             // Act
-            simulation.UpdateSimulation(0.02f); // One frame of physics update
+            _simulation.UpdateSimulation(0.02f); // One frame of physics update
+            var heldBall = _simulation.GetCurrentBallState();
+          
+            Assert.AreEqual(controllerVelocity, heldBall.Velocity, "Ball velocity should be same as controller.");
+            Assert.IsTrue(heldBall.IsHeld, "Ball should still be held.");
+            
+            // Release the ball
+            _simulation.SetLeftControllerState(new ControllerState
+            {
+                GripPressed = false,
+                Velocity = controllerVelocity
+            });
+
+            _simulation.UpdateSimulation(0.02f); // One frame of physics update
 
             // Assert
-            var updatedBall = simulation.GetCurrentBallState();
+            var updatedBall = _simulation.GetCurrentBallState();
             Assert.IsFalse(updatedBall.IsHeld, "Ball should no longer be held.");
             Assert.AreEqual(controllerVelocity.y + _physicsConfig.Gravity.y * 0.02f, updatedBall.Velocity.y, 0.1f, "Ball velocity should be continuous after release.");
         }

@@ -1,6 +1,6 @@
+using System.Collections.Generic;
 using Domain.Entities;
 using Domain.Interfaces;
-using Infrastructure.CustomPhysics;
 using UnityEngine;
 
 namespace Domain.Physics
@@ -12,86 +12,90 @@ namespace Domain.Physics
     public class CollisionDetectionSystem : ICollisionSystem
     {
         private readonly IPhysicsConfig _config;
+        private readonly List<OrientedBox> _environmentShapes;
+        private readonly CollisionResolutionSystem _collisionResolver;
+
+        public CollisionDetectionSystem(IPhysicsConfig config) 
+            : this(config, new List<OrientedBox>()) {}
 
         /// <summary>
         /// Initializes a new instance of the CollisionDetectionSystem class with the specified physics configuration.
         /// </summary>
         /// <param name="config">The physics configuration parameters.</param>
-        public CollisionDetectionSystem(IPhysicsConfig config)
+        /// <param name="environmentShapes">The oriented boxes representing the environment geometry.</param>
+        public CollisionDetectionSystem(IPhysicsConfig config, List<OrientedBox> environmentShapes)
         {
             _config = config;
+            _environmentShapes = environmentShapes;
+            _collisionResolver = new CollisionResolutionSystem();
         }
 
         /// <summary>
-        /// Detects collisions between the ball and paddle using advanced continuous collision detection.
+        /// Detects collisions between the ball and paddle using geometry-based collision detection.
         /// </summary>
-        /// <param name="previousBallState">The previous state of the ball.</param>
-        /// <param name="currentBallState">The current state of the ball.</param>
-        /// <param name="previousPaddleState">The previous state of the paddle.</param>
-        /// <param name="currentPaddleState">The current state of the paddle.</param>
-        /// <param name="deltaTime">The time step for the physics update.</param>
-        /// <returns>Collision data if a collision is detected, otherwise an empty collision data object.</returns>
         public CollisionData DetectCollision(
             BallState previousBallState, BallState currentBallState,
             PaddleState previousPaddleState, PaddleState currentPaddleState,
             float deltaTime)
         {
-            // Check for collisions with the forehand paddle side
-            CollisionData collisionData = DetectPaddleSideCollision(
+            // Check for collisions with the forehand side
+            CollisionData fhCollisionData = DetectPaddleSideCollision(
                 previousBallState, currentBallState,
                 previousPaddleState, currentPaddleState,
-                deltaTime, previousPaddleState?.ForehandCollider, currentPaddleState?.ForehandCollider);
+                deltaTime,
+                _config.Paddle.Geometry.ForehandLocalCenter,
+                _config.Paddle.Geometry.HalfExtents,
+                "Forehand");
 
-            if (collisionData.Detected)
-            {
-                Debug.Log("Collision detected with forehand paddle side");
-                return collisionData;
-            }
-
-            // Check for collisions with the backhand paddle side
-            collisionData = DetectPaddleSideCollision(
+            // Check for collisions with the backhand side
+            var bhCollisionData = DetectPaddleSideCollision(
                 previousBallState, currentBallState,
                 previousPaddleState, currentPaddleState,
-                deltaTime, previousPaddleState?.BackhandCollider, currentPaddleState?.BackhandCollider);
+                deltaTime,
+                _config.Paddle.Geometry.BackhandLocalCenter,
+                _config.Paddle.Geometry.HalfExtents,
+                "Backhand");
 
-            if (collisionData.Detected)
+            // Return the collision data for the side with the earliest impact
+            if (fhCollisionData.Detected && bhCollisionData.Detected)
             {
-                Debug.Log("Collision detected with backhand paddle side");
-                return collisionData;
+                return fhCollisionData.TimeOfImpact < bhCollisionData.TimeOfImpact
+                    ? fhCollisionData
+                    : bhCollisionData;
             }
 
             // Check for collisions with the environment
-            return DetectEnvironmentCollision(currentBallState, deltaTime);
+            return DetectEnvironmentCollision(previousBallState, currentBallState, deltaTime);
         }
 
-        /// <summary>
-        /// Detects swept collisions between the ball and a specific paddle side, considering their movements over the time step.
-        /// </summary>
-        /// <param name="previousBallState">The previous state of the ball.</param>
-        /// <param name="currentBallState">The current state of the ball.</param>
-        /// <param name="previousPaddleState">The previous state of the paddle.</param>
-        /// <param name="currentPaddleState">The current state of the paddle.</param>
-        /// <param name="deltaTime">The time step for the physics update.</param>
-        /// <param name="previousPaddleCollider">The specific paddle collider to check against (previous state).</param>
-        /// <param name="currentPaddleCollider">The specific paddle collider to check against (current state).</param>
-        /// <returns>Collision data if a collision is detected, otherwise an empty collision data object.</returns>
         private CollisionData DetectPaddleSideCollision(
             BallState previousBallState, BallState currentBallState,
             PaddleState previousPaddleState, PaddleState currentPaddleState,
-            float deltaTime, BoxCollider previousPaddleCollider, BoxCollider currentPaddleCollider)
+            float deltaTime,
+            Vector3 localCenter,
+            Vector3 halfExtents,
+            string sideName)
         {
-            if (currentPaddleCollider == null)
-            {
-                return new CollisionData { Detected = false };
-            }
+            // Build oriented boxes for the paddle side at previous and current states
+            OrientedBox paddleBox = BuildOrientedBox(
+                currentPaddleState.Position, 
+                currentPaddleState.Rotation, 
+                localCenter, 
+                halfExtents);
 
-            // Use swept sphere-to-oriented-box collision detection
-            bool collisionDetected = SweptBoxCollisionPro.SweptSphereToOrientedBox(
-                previousBallState.Position, currentBallState.Position, _config.Ball.DiameterMeters / 2f,
-                currentPaddleCollider,
-                out Vector3 collisionPoint, out Vector3 collisionNormal, out float timeOfImpact);
+            // Get ball radius
+            float ballRadius = _config.Ball.DiameterMeters * 0.5f;
 
-            if (collisionDetected)
+            // Perform swept sphere to box collision detection
+            bool hit = SweptBoxCollisionPro.SweptSphereToOrientedBox(
+                previousBallState.Position, currentBallState.Position,
+                ballRadius,
+                paddleBox,
+                out Vector3 collisionPoint,
+                out Vector3 collisionNormal,
+                out float timeOfImpact);
+
+            if (hit)
             {
                 return new CollisionData
                 {
@@ -99,63 +103,92 @@ namespace Domain.Physics
                     Point = collisionPoint,
                     Normal = collisionNormal,
                     TimeOfImpact = timeOfImpact,
-                    Collider = currentPaddleCollider
+                    CollisionTag = sideName
                 };
             }
 
             return new CollisionData { Detected = false };
         }
 
-        /// <summary>
-        /// Detects collisions between the ball and the environment (e.g., table, floor, walls) using advanced continuous collision detection.
-        /// </summary>
-        /// <param name="ball">The current state of the ball.</param>
-        /// <param name="deltaTime">The time step for the physics update.</param>
-        /// <returns>Collision data if a collision is detected, otherwise an empty collision data object.</returns>
-        private CollisionData DetectEnvironmentCollision(BallState ball, float deltaTime)
+        private OrientedBox BuildOrientedBox(
+            Vector3 paddleCenterPos,
+            Quaternion paddleRot,
+            Vector3 localCenterOffset,
+            Vector3 halfExtents)
         {
-            float ballRadius = _config.Ball.DiameterMeters / 2f;
-            Vector3 displacement = ball.Velocity * deltaTime;
-
-            // Perform sphere cast from ball's position in the direction of its velocity
-            RaycastHit hitInfo;
-            bool hit = UnityEngine.Physics.SphereCast(
-                origin: ball.Position,
-                radius: ballRadius,
-                direction: ball.Velocity.normalized,
-                hitInfo: out hitInfo,
-                maxDistance: displacement.magnitude,
-                layerMask: _config.EnvironmentLayerMask,
-                queryTriggerInteraction: QueryTriggerInteraction.Ignore
-            );
-
-            if (hit)
+            // Validate rotation
+            if (!IsValidQuaternion(paddleRot))
             {
-                float timeOfImpact = (hitInfo.distance / displacement.magnitude) * deltaTime;
-
-                return new CollisionData
-                {
-                    Detected = true,
-                    Point = hitInfo.point,
-                    Normal = hitInfo.normal,
-                    TimeOfImpact = timeOfImpact,
-                    Collider = hitInfo.collider
-                };
+                //Debug.LogWarning("Invalid quaternion detected= " + paddleRot);
+                // Happens when the paddle is not being tracked.
+                paddleRot = Quaternion.identity;
             }
 
-            return new CollisionData { Detected = false };
+            var worldCenter = paddleCenterPos + (paddleRot * localCenterOffset);
+            // TODO: Prevent thrashing the heap, reuse the same half extents vectors
+            return new OrientedBox(worldCenter, paddleRot, halfExtents);
         }
 
-        /// <summary>
-        /// Resolves a detected collision and updates the ball's state.
-        /// </summary>
-        /// <param name="ballState">The current state of the ball to be updated.</param>
-        /// <param name="paddleState">The state of the paddle involved in the collision, if any.</param>
-        /// <param name="collisionData">The collision data to resolve.</param>
+        private bool IsValidQuaternion(Quaternion q)
+        {
+            return !Mathf.Approximately(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w, 0f);
+        }
+
+        private CollisionData DetectEnvironmentCollision(BallState previousBallState, BallState currentBallState, float deltaTime)
+        {
+            float ballRadius = _config.Ball.DiameterMeters * 0.5f;
+
+            // Use advanced swept collision detection for environment shapes
+            CollisionData bestCollision = new CollisionData { Detected = false };
+            float earliestTime = float.MaxValue;
+
+            foreach (var shape in _environmentShapes)
+            {
+                bool hit = SweptBoxCollisionPro.SweptSphereToOrientedBox(
+                    previousBallState.Position, currentBallState.Position,
+                    ballRadius,
+                    shape,
+                    out Vector3 collisionPoint,
+                    out Vector3 collisionNormal,
+                    out float timeOfImpact);
+
+                if (hit && timeOfImpact < earliestTime)
+                {
+                    earliestTime = timeOfImpact;
+                    bestCollision = new CollisionData
+                    {
+                        Detected = true,
+                        Point = collisionPoint,
+                        Normal = collisionNormal,
+                        TimeOfImpact = timeOfImpact * deltaTime,
+                        CollisionTag = "Environment"
+                    };
+                }
+            }
+
+            return bestCollision;
+        }
+
         public void ResolveCollision(ref BallState ballState, PaddleState paddleState, CollisionData collisionData)
         {
-            var collisionResolver = new CollisionResolutionSystem();
-            collisionResolver.ResolveCollision(ref ballState, paddleState, collisionData, _config);
+            _collisionResolver.ResolveCollision(ref ballState, paddleState, collisionData, _config);
+        }
+    }
+
+    /// <summary>
+    /// Represents an oriented bounding box used for collision detection.
+    /// </summary>
+    public struct OrientedBox
+    {
+        public Vector3 Center;
+        public Quaternion Rotation;
+        public Vector3 HalfExtents;
+
+        public OrientedBox(Vector3 center, Quaternion rotation, Vector3 halfExtents)
+        {
+            Center = center;
+            Rotation = rotation;
+            HalfExtents = halfExtents;
         }
     }
 }

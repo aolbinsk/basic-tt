@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Domain.Config 
+namespace Domain.Config
 {
     /// <summary>
     /// Configuration for air properties affecting ball physics.
@@ -12,9 +12,8 @@ namespace Domain.Config
         private const float DEFAULT_MAGNUS_COEFFICIENT = 0.0001f;
         private const float DEFAULT_ANGULAR_DRAG_COEFFICIENT = 0.1f;
 
-        // Properties
-        public float Density => DEFAULT_AIR_DENSITY;
-        public float MagnusCoefficient => DEFAULT_MAGNUS_COEFFICIENT;
-        public float AngularDragCoefficient => DEFAULT_ANGULAR_DRAG_COEFFICIENT;
+        public float Density { get; set; } = DEFAULT_AIR_DENSITY;
+        public float MagnusCoefficient { get; set; } = DEFAULT_MAGNUS_COEFFICIENT;
+        public float AngularDragCoefficient { get; set; } = DEFAULT_ANGULAR_DRAG_COEFFICIENT;
     }
 }

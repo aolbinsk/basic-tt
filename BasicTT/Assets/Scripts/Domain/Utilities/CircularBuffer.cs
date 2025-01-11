@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace Domain.Utilities
 {
     /// <summary>
@@ -23,15 +25,22 @@ namespace Domain.Utilities
             _index = 0;
         }
 
+        public int Capacity => _buffer.Length;
+
         /// <summary>
         /// Gets the next available object from the buffer.
         /// </summary>
         /// <returns>The next object.</returns>
         public T GetNext()
         {
-            T item = _buffer[_index];
             _index = (_index + 1) % _buffer.Length;
+            T item = _buffer[_index];
             return item;
+        }
+
+        public T PeekCurrent()
+        {
+            return _buffer[_index];
         }
     }
 }

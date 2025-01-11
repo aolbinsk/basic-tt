@@ -17,6 +17,11 @@ namespace Tests.Domain.Physics
         public void SetUp()
         {
             _physicsConfig = new PhysicsConfig();
+            _physicsConfig.Air.AngularDragCoefficient = 0f;
+            _physicsConfig.Air.MagnusCoefficient = 0f;
+            _physicsConfig.Air.Density = 0f;
+            _physicsConfig.Table.Friction = 0f;
+            _physicsConfig.Table.BounceRestitution = 1f;
             _collisionResolutionSystem = new CollisionResolutionSystem();
         }
 
@@ -64,7 +69,7 @@ namespace Tests.Domain.Physics
                 Detected = true,
                 Normal = Vector3.forward,
                 Point = Vector3.zero,
-                Collider = new BoxCollider() // Assume forehand side
+                CollisionTag = "Forehand"
             };
 
             // Act

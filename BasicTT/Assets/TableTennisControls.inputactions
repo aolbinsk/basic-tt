@@ -1,0 +1,134 @@
+{
+    "name": "TableTennisControls",
+    "maps": [
+        {
+            "name": "VRControls",
+            "id": "b0b04b29-4df9-4af7-b71a-ada6a5a82599",
+            "actions": [
+                {
+                    "name": "LeftGripButton",
+                    "type": "Button",
+                    "id": "c25a147a-a229-449e-a79f-5323686cba95",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "RightControllerPosition",
+                    "type": "PassThrough",
+                    "id": "1991d006-b74d-4d9b-a3ee-7292d7de73dc",
+                    "expectedControlType": "Vector3",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "RightControllerRotation",
+                    "type": "Value",
+                    "id": "5e2ffd3f-4e57-4b03-983a-973e5215cc3d",
+                    "expectedControlType": "Quaternion",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "LeftControllerPosition",
+                    "type": "Value",
+                    "id": "54b745ff-9ce8-4404-9a92-b9ef65665c0b",
+                    "expectedControlType": "Vector3",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "LeftControllerRotation",
+                    "type": "Value",
+                    "id": "3a1d6b38-d931-458f-9162-a5082d3e9217",
+                    "expectedControlType": "Quaternion",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "RightGripButton",
+                    "type": "Button",
+                    "id": "43ba1eea-e52a-4ff9-bbfa-ae0b64d78b60",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "a188131f-bb26-40de-9950-b36428f0dd15",
+                    "path": "<XRController>{LeftHand}/{GripButton}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "LeftGripButton",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b37d8517-e16a-404c-ac1a-b6a2b68b1659",
+                    "path": "<XRController>{RightHand}/devicePosition",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RightControllerPosition",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c01b1012-c50f-4efa-bc61-e480426b21ce",
+                    "path": "<XRController>{RightHand}/deviceRotation",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RightControllerRotation",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f5076f2b-85bd-446e-ade3-1c09f59b2847",
+                    "path": "<XRController>{LeftHand}/devicePosition",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "LeftControllerPosition",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c3f143a8-3072-4ff9-9d95-c82cd00aa14f",
+                    "path": "<XRController>{LeftHand}/deviceRotation",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "LeftControllerRotation",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "793d8a6d-5b89-4f64-8a00-ef82bb30c85b",
+                    "path": "<XRController>{RightHand}/{GripButton}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RightGripButton",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
