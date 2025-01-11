@@ -28,11 +28,15 @@ This document is structured in a way that should be maintainable and clear, capt
   - The right-hand controller attaches to the **paddle** with a 1:1 positional mapping.
   - Paddle sizes must match real dimensions:
     - Head width: ~15.25 cm
-    - Head length: ~15.25 cm
-    - Head thickness: ~2 cm
+    - Head length: ~17 cm
+    - Blade thickness: ~1 cm
+    - Rubber thickness: ~2 mm
     - Handle length: ~10 cm
-    - Total ~25.25 cm from handle tip to paddle tip
+
   - Final geometry is generated or scaled in code.
+  - **Paddle Construction Details**
+    - The paddle must visually and structurally represent a real table tennis paddle, consisting of a gray frame (wooden blade) with rubbers glued on top of both forehand and backhand sides.
+    - The local centers of the paddle components (blade and rubbers) must be accurately calculated to ensure correct physics interactions and visual alignment.
 
 5. **Ball Setup**
   - The **ball** is code-generated with a diameter of ~40 mm (2.7 g typical).

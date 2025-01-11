@@ -1,3 +1,4 @@
+using Domain.Physics;
 using UnityEngine;
 
 namespace Domain.Config
@@ -9,15 +10,18 @@ namespace Domain.Config
     {
         // Constants
         private const float DefaultHeadWidthMeters = 0.1525f;  // 15.25cm
-        private const float DefaultHeadLengthMeters = DefaultHeadWidthMeters;
-        private const float DefaultHeadThicknessMeters = 0.02f; // 2cm
+        private const float DefaultHeadLengthMeters = 0.17f; // 17cm
+        private const float DefaultHeadBladeThicknessMeters = 0.01f; // 1cm
+        private const float DefaultRubberThicknessMeters = 0.002f; // 2mm
         private const float DefaultHandleLengthMeters = 0.10f; // 10cm
-        private const float DefaultHandleRadiusMeters = 0.02f; // 2cm
+        private const float DefaultHandleRadiusMeters = 0.013f; // 1.3cm
+        
 
         // Properties
         public float HeadWidthMeters => DefaultHeadWidthMeters;
         public float HeadLengthMeters => DefaultHeadLengthMeters;
-        public float HeadThicknessMeters => DefaultHeadThicknessMeters;
+        public float HeadBladeThicknessMeters => DefaultHeadBladeThicknessMeters;
+        public float HeadRubberThicknessMeters => DefaultRubberThicknessMeters;
         public float HandleLengthMeters => DefaultHandleLengthMeters;
         public float HandleRadiusMeters => DefaultHandleRadiusMeters;
 
@@ -46,10 +50,30 @@ namespace Domain.Config
         {
             Geometry = new PaddleGeometry
             {
-                // Now interpret the geometry as X= length, Y= thickness, Z= width
-                ForehandLocalCenter = new Vector3(0, 0, +HeadWidthMeters/2f),
-                BackhandLocalCenter = new Vector3(0, 0, -HeadWidthMeters/2f),
-                HalfExtents = new Vector3(HeadLengthMeters/2f, HeadThicknessMeters/4f, HeadWidthMeters/2f),
+                BladeHalfExtents = new Vector3(
+                    HeadBladeThicknessMeters / 2f,
+                    HeadWidthMeters / 2f,
+                    HeadLengthMeters / 2f),
+
+                ForehandRubberCenter = new Vector3(
+                    -(HeadBladeThicknessMeters / 2f + HeadRubberThicknessMeters / 2f),
+                    0f,
+                    0f),
+                
+                ForehandRubberHalfExtents = new Vector3(
+                    HeadRubberThicknessMeters / 2f,
+                    HeadWidthMeters / 2f,
+                    HeadLengthMeters / 2f),
+
+                BackhandRubberCenter = new Vector3(
+                    (HeadBladeThicknessMeters / 2f + HeadRubberThicknessMeters / 2f),
+                    0f,
+                    0f),
+                
+                BackhandRubberHalfExtents = new Vector3(
+                    HeadRubberThicknessMeters / 2f,
+                    HeadWidthMeters / 2f,
+                    HeadLengthMeters / 2f)
             };
         }
     }
@@ -59,8 +83,10 @@ namespace Domain.Config
     /// </summary>
     public class PaddleGeometry
     {
-        public Vector3 ForehandLocalCenter { get; set; }
-        public Vector3 BackhandLocalCenter { get; set; }
-        public Vector3 HalfExtents { get; set; }
+        public Vector3 BladeHalfExtents { get; set; }
+        public Vector3 ForehandRubberCenter { get; set; }
+        public Vector3 BackhandRubberCenter { get; set; }
+        public Vector3 ForehandRubberHalfExtents { get; set; }
+        public Vector3 BackhandRubberHalfExtents { get; set; }
     }
 }

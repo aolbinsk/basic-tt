@@ -123,10 +123,6 @@ namespace Domain.Logic
                     _collisionSystem.ResolveCollision(ref currentBallState, _currentPaddleState, collisionData);
                 }
             }
-            else
-            {
-                Debug.Log($"{LOGPrefix}Ball is held. Skipping physics integration.");
-            }
 
             _renderer.UpdateBallVisuals(currentBallState);
             _renderer.UpdatePaddleVisuals(_currentPaddleState);

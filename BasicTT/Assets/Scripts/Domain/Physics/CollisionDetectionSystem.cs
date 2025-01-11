@@ -43,8 +43,8 @@ namespace Domain.Physics
                 previousBallState, currentBallState,
                 previousPaddleState, currentPaddleState,
                 deltaTime,
-                _config.Paddle.Geometry.ForehandLocalCenter,
-                _config.Paddle.Geometry.HalfExtents,
+                _config.Paddle.Geometry.ForehandRubberCenter,
+                _config.Paddle.Geometry.ForehandRubberHalfExtents,
                 "Forehand");
 
             // Check for collisions with the backhand side
@@ -52,8 +52,8 @@ namespace Domain.Physics
                 previousBallState, currentBallState,
                 previousPaddleState, currentPaddleState,
                 deltaTime,
-                _config.Paddle.Geometry.BackhandLocalCenter,
-                _config.Paddle.Geometry.HalfExtents,
+                _config.Paddle.Geometry.BackhandRubberCenter,
+                _config.Paddle.Geometry.BackhandRubberHalfExtents,
                 "Backhand");
 
             // Return the collision data for the side with the earliest impact
@@ -85,7 +85,7 @@ namespace Domain.Physics
 
             // Get ball radius
             float ballRadius = _config.Ball.DiameterMeters * 0.5f;
-
+            
             // Perform swept sphere to box collision detection
             bool hit = SweptBoxCollisionPro.SweptSphereToOrientedBox(
                 previousBallState.Position, currentBallState.Position,

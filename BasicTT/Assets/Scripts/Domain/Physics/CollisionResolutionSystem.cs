@@ -39,7 +39,8 @@ namespace Domain.Physics
                 restitution = config.Paddle.RubberBounciness;
 
                 Vector3 relativeVelocity = ball.Velocity - paddle.Velocity;
-                Vector3 newRelativeVelocity = relativeVelocity - (1 + restitution) * Vector3.Dot(relativeVelocity, normal) * normal;
+                Vector3 newRelativeVelocity = relativeVelocity 
+                                              - (1 + restitution) * Vector3.Dot(relativeVelocity, normal) * normal;
 
                 newRelativeVelocity *= throwMultiplier;
                 ball.Velocity = newRelativeVelocity + paddle.Velocity;
@@ -58,6 +59,8 @@ namespace Domain.Physics
                 ball.Velocity = Vector3.Reflect(incomingVelocity, normal) * restitution;
                 ball.AngularVelocity *= (1f - config.Table.Friction);
             }
+            float ballRadius = config.Ball.DiameterMeters * 0.5f;
+            ball.Position = collision.Point + normal * (ballRadius + 0.001f);
         }
     }
 }

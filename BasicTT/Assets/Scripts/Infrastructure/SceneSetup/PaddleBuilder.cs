@@ -1,4 +1,5 @@
 using Domain.Interfaces;
+using Domain.Config;
 using UnityEngine;
 
 namespace Infrastructure.SceneSetup
@@ -6,78 +7,68 @@ namespace Infrastructure.SceneSetup
     /// <summary>
     /// Responsible for constructing the paddle GameObject with proper physics, visuals, and configuration.
     /// Builds paddle in standard orientation: head centered at origin, handle along -X, forehand facing +Z.
+    /// Uses intermediate GameObjects to maintain metric sizes while allowing scaled visuals.
     /// </summary>
     public class PaddleBuilder
     {
-        private readonly IPhysicsConfig _config;
+        private readonly PaddleConfig _paddleConfig;
 
-        /// <summary>
-        /// Initializes a new instance of the PaddleBuilder class with the specified physics configuration.
-        /// </summary>
-        /// <param name="config">The physics configuration to use for paddle dimensions and materials.</param>
-        public PaddleBuilder(IPhysicsConfig config)
+        public PaddleBuilder(PaddleConfig paddleConfig)
         {
-            _config = config;
+            _paddleConfig = paddleConfig;
         }
 
-        /// <summary>
-        /// Builds and configures a paddle GameObject.
-        /// </summary>
-        /// <returns>The constructed paddle GameObject.</returns>
         public GameObject BuildPaddle()
         {
-            // 1) Create a parent GameObject to hold the entire paddle
             var paddleRoot = new GameObject("Paddle")
             {
                 layer = LayerMask.NameToLayer("Paddle")
             };
 
-            // 2) Build the paddle head geometry
-            var paddleHead = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            paddleHead.name = "PaddleHead";
-            paddleHead.transform.SetParent(paddleRoot.transform, false);
+            // Build blade with separated physics and visuals
+            var bladePivot = new GameObject("PaddleBlade");
+            bladePivot.transform.SetParent(paddleRoot.transform, false);
+            bladePivot.transform.localPosition = Vector3.zero;
 
-            // 3) Scale the paddle head according to config
-            paddleHead.transform.localScale = new Vector3(
-                _config.Paddle.HeadLengthMeters, // Along z-axis
-                _config.Paddle.HeadThicknessMeters, // Along y-axis
-                _config.Paddle.HeadWidthMeters // Along x-axis
-            );
+            var bladeVisuals = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            bladeVisuals.name = "PaddleBlade_Visuals";
+            bladeVisuals.transform.SetParent(bladePivot.transform, false);
+            bladeVisuals.transform.localPosition = Vector3.zero;
+            bladeVisuals.transform.localScale = _paddleConfig.Geometry.BladeHalfExtents * 2f;
 
-            // 4) Position the paddle head to align with the handle center
-            float halfLength = _config.Paddle.HeadLengthMeters * 0.5f;
-            paddleHead.transform.localPosition = new Vector3(0f, 0f, -halfLength * 0.5f);
-
-            // 5) Adjust the hit zones
-            SetupHitZones(paddleHead);
-
-            // 6) Configure the paddle head material
-            var headRenderer = paddleHead.GetComponent<Renderer>();
-            if (headRenderer != null)
+            var bladeRenderer = bladeVisuals.GetComponent<Renderer>();
+            if (bladeRenderer != null)
             {
-                var paddleMat = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+                var bladeMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"))
                 {
-                    color = Color.red
+                    color = Color.gray
                 };
-                headRenderer.material = paddleMat;
+                bladeRenderer.material = bladeMaterial;
             }
+            
+            SetupRubber("Forehand", bladePivot, _paddleConfig.Geometry.ForehandRubberCenter, 
+                _paddleConfig.Geometry.ForehandRubberHalfExtents, Color.red);
+            SetupRubber("Backhand", bladePivot, _paddleConfig.Geometry.BackhandRubberCenter, 
+                _paddleConfig.Geometry.BackhandRubberHalfExtents, Color.black);
 
-            // 7) Build the handle
-            var paddleHandle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            paddleHandle.name = "PaddleHandle";
-            paddleHandle.transform.SetParent(paddleRoot.transform, false);
+            // Build handle with separated physics and visuals
+            var handlePivot = new GameObject("PaddleHandle");
+            handlePivot.transform.SetParent(paddleRoot.transform, false);
+            
+            float handleOffsetZ = _paddleConfig.HeadLengthMeters * 0.5f + _paddleConfig.HandleLengthMeters * 0.5f;
+            handlePivot.transform.localPosition = new Vector3(0f, 0f, -handleOffsetZ);
+            handlePivot.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
 
-            float handleRadius = _config.Paddle.HandleRadiusMeters;
-            float handleLength = _config.Paddle.HandleLengthMeters;
-            paddleHandle.transform.localScale = new Vector3(handleRadius * 2f, handleLength * 0.5f, handleRadius * 2f);
+            var handleVisuals = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            handleVisuals.name = "PaddleHandle_Visuals";
+            handleVisuals.transform.SetParent(handlePivot.transform, false);
+            handleVisuals.transform.localPosition = Vector3.zero;
+            handleVisuals.transform.localScale = new Vector3(
+                _paddleConfig.HandleRadiusMeters * 2f,
+                _paddleConfig.HandleLengthMeters / 2, // Halved because Unity's cylinder is unit length, shape is two units high and one unit in diameter.
+                _paddleConfig.HandleRadiusMeters * 2f);
 
-            // Align handle along the z-axis, centered under the paddle head
-            float handleOffsetZ = -halfLength - (handleLength * 0.5f);
-            paddleHandle.transform.localPosition = new Vector3(0f, 0f, handleOffsetZ);
-            paddleHandle.transform.localRotation = Quaternion.Euler(90f, 0f, 0f); // Align along z-axis
-
-            // 8) Configure the handle material
-            var handleRenderer = paddleHandle.GetComponent<Renderer>();
+            var handleRenderer = handleVisuals.GetComponent<Renderer>();
             if (handleRenderer != null)
             {
                 var handleMat = new Material(Shader.Find("Universal Render Pipeline/Lit"))
@@ -89,38 +80,36 @@ namespace Infrastructure.SceneSetup
 
             return paddleRoot;
         }
-
-        private void SetupHitZones(GameObject paddleHead)
+        
+        private void SetupRubber(
+            string name, 
+            GameObject bladePivot, 
+            Vector3 localCenter, 
+            Vector3 halfExtents, 
+            Color color)
         {
-            // Suppose the entire paddle thickness is 0.02f (2cm).
-            // We'll create two child objects: "ForehandSide" and "BackhandSide"
-            // Each will have half the thickness (0.01f).
+            var rubberPivot = new GameObject($"{name}Rubber");
+            rubberPivot.transform.SetParent(bladePivot.transform, false);
+            rubberPivot.transform.localPosition = localCenter;
 
-            float halfThickness = _config.Paddle.HeadThicknessMeters * 0.5f;
-            float fullWidth     = _config.Paddle.HeadWidthMeters;
-            float fullLength    = _config.Paddle.HeadLengthMeters;
+            var rubberVisuals = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rubberVisuals.name = $"{name}Rubber_Visuals";
+            rubberVisuals.transform.SetParent(rubberPivot.transform, false);
+            rubberVisuals.transform.localPosition = Vector3.zero;
+            rubberVisuals.transform.localScale = halfExtents * 2f;
 
-            // 1) Forehand side
-            var forehandZone = new GameObject("ForehandSide");
-            forehandZone.transform.SetParent(paddleHead.transform, false);
+            var renderer = rubberVisuals.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                var material = new Material(Shader.Find("Universal Render Pipeline/Lit"))
+                {
+                    color = color
+                };
+                renderer.material = material;
+            }
 
-            // Position the forehand collider so its center is 1/2 of the halfThickness away from the paddle center:
-            forehandZone.transform.localPosition = new Vector3(0f, 0f, +halfThickness * 0.5f); 
-            // Or whichever axis is "forward"
-
-            var forehandCollider = forehandZone.AddComponent<BoxCollider>();
-            forehandCollider.size = new Vector3(fullWidth, _config.Paddle.HeadThicknessMeters * 0.5f, fullLength);
-
-            // 2) Backhand side
-            var backhandZone = new GameObject("BackhandSide");
-            backhandZone.transform.SetParent(paddleHead.transform, false);
-
-            // Position the backhand collider so its center is –1/2 of the halfThickness from the paddle center:
-            backhandZone.transform.localPosition = new Vector3(0f, 0f, -halfThickness * 0.5f);
-
-            var backhandCollider = backhandZone.AddComponent<BoxCollider>();
-            backhandCollider.size = new Vector3(fullWidth, _config.Paddle.HeadThicknessMeters * 0.5f, fullLength);
-
+            var collider = rubberPivot.AddComponent<BoxCollider>();
+            collider.size = halfExtents * 2f;
         }
     }
 }

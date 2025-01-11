@@ -72,7 +72,7 @@ namespace Tests.Domain.Physics
         public void Ball_RollingOnStationaryFlatPaddle_RollsAndStops()
         {
             // Arrange
-            float paddleHeight = _physicsConfig.Paddle.HeadThicknessMeters;
+            float paddleHeight = _physicsConfig.Paddle.HeadBladeThicknessMeters;
             float ballRadius = _physicsConfig.Ball.DiameterMeters / 2f;
             _ballState.Position = new Vector3(0f, ballRadius + paddleHeight, 0f);
             _ballState.Velocity = new Vector3(0.5f, 0f, 0f);
@@ -97,7 +97,7 @@ namespace Tests.Domain.Physics
             Vector3 gravity = tiltRotation * _physicsConfig.Gravity;
             _physicsConfig.Gravity = gravity;
 
-            _ballState.Position = new Vector3(0f, ballRadius + _physicsConfig.Paddle.HeadThicknessMeters, 0f);
+            _ballState.Position = new Vector3(0f, ballRadius + _physicsConfig.Paddle.HeadBladeThicknessMeters, 0f);
             _ballState.Velocity = Vector3.zero;
             _ballState.AngularVelocity = Vector3.zero;
 

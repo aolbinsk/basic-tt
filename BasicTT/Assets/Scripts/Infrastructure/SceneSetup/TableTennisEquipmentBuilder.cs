@@ -20,7 +20,7 @@ namespace Infrastructure.SceneSetup
         {
             _config = config;
             _ballBuilder = new BallBuilder(_config);
-            _paddleBuilder = new PaddleBuilder(_config);
+            _paddleBuilder = new PaddleBuilder(_config.Paddle);
         }
 
         /// <summary>
