@@ -33,7 +33,7 @@ namespace Domain.Config
 
         // Sub-configurations
         public BallConfig Ball { get; } = new();
-        public AirConfig Air { get; } = new();
+        public AirConfig Air { get; set; } = new();
         public PaddleConfig Paddle { get; } = new();
         public TableConfig Table { get; } = new();
         public PlayerConfig Player { get; } = new();

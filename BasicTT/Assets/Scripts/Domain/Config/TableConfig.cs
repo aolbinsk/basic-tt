@@ -13,6 +13,8 @@ namespace Domain.Config
         private const float DEFAULT_HEIGHT_METERS = 0.76f;   // Regulation height
         private const float DEFAULT_THICKNESS_METERS = 0.02f; // Standard thickness
         private const float DEFAULT_NET_HEIGHT_METERS = 0.1525f; // Regulation net height
+        private const float DEFAULT_FRICTION = 0.2f;
+        private const float DEFAULT_RESTITUTION = 0.8f;
 
         // Properties
         public float LengthMeters => DEFAULT_LENGTH_METERS;
@@ -21,9 +23,9 @@ namespace Domain.Config
         public float ThicknessMeters => DEFAULT_THICKNESS_METERS;
         public float NetHeightMeters => DEFAULT_NET_HEIGHT_METERS;
         
-        public float BounceRestitution => 0.85f;
-        public float Friction => 0.2f;
-        
+        public float BounceRestitution { get; set; } = DEFAULT_RESTITUTION;
+        public float Friction { get; set; } = DEFAULT_FRICTION;
+
         public PhysicsMaterial TableMaterial { get; set; }
         public PhysicsMaterial NetMaterial { get; set; }
     }

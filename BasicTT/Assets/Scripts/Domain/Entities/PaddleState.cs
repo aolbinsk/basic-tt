@@ -7,13 +7,15 @@ namespace Domain.Entities
     /// </summary>
     public class PaddleState
     {
-        public Vector3 Position { get; set; }
-        public Quaternion Rotation { get; set; }
-        public Vector3 Velocity { get; set; }
-        public Vector3 AngularVelocity { get; set; }
-        public BoxCollider ForehandCollider { get; set; }
-        public BoxCollider BackhandCollider { get; set; }
-                
+        public Vector3 Position { get; set; } = Vector3.zero;
+        public Quaternion Rotation { get; set; } = Quaternion.identity;
+        public Vector3 Velocity { get; set; } = Vector3.zero;
+        public Vector3 AngularVelocity { get; set; } = Vector3.zero;
+
+        /// <summary>
+        /// Creates a deep copy of the current PaddleState.
+        /// </summary>
+        /// <returns>A new PaddleState instance with the same values.</returns>
         public PaddleState Clone()
         {
             return new PaddleState
@@ -21,7 +23,7 @@ namespace Domain.Entities
                 Position = Position,
                 Rotation = Rotation,
                 Velocity = Velocity,
-                AngularVelocity = AngularVelocity,
+                AngularVelocity = AngularVelocity
             };
         }
     }

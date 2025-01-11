@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 using Domain.Filters;
 using Domain.Interfaces;
 using System.Collections.Generic;
+using Domain.Entities;
 
 namespace Infrastructure.XRInput
 {
@@ -118,54 +119,26 @@ namespace Infrastructure.XRInput
             _rightGripAction.canceled += OnRightGripReleased;
         }
 
-        public Vector3 ReadFilteredRightPosition()
-        {
-            Vector3 currentPosition = _rightPositionAction.ReadValue<Vector3>();
-            return _rightPositionFilter.Update(currentPosition);
-        }
-
-        public Quaternion ReadFilteredRightRotation()
-        {
-            Quaternion currentRotation = _rightRotationAction.ReadValue<Quaternion>();
-            return _rightRotationFilter.Update(currentRotation);
-        }
-
-        public Vector3 ReadFilteredLeftPosition()
-        {
-            Vector3 currentPosition = _leftPositionAction.ReadValue<Vector3>();
-            return _leftPositionFilter.Update(currentPosition);
-        }
-
-        public Quaternion ReadFilteredLeftRotation()
-        {
-            Quaternion currentRotation = _leftRotationAction.ReadValue<Quaternion>();
-            return _leftRotationFilter.Update(currentRotation);
-        }
-
-        public Vector3 GetRightControllerVelocity()
-        {
-            UpdateRightControllerData();
-            return _rightControllerVelocity;
-        }
-
-        public Vector3 GetRightControllerAngularVelocity()
-        {
-            UpdateRightControllerData();
-            return _rightControllerAngularVelocity;
-        }
-
-        public Vector3 GetLeftControllerVelocity()
+        public void ReadLeftControllerState(ref ControllerState controllerState)
         {
             UpdateLeftControllerData();
-            return _leftControllerVelocity;
+            controllerState.Position = _previousLeftPosition;
+            controllerState.Rotation = _previousLeftRotation;
+            controllerState.Velocity = _leftControllerVelocity;
+            controllerState.AngularVelocity = _leftControllerAngularVelocity;
+            controllerState.GripPressed = LeftGripPressed;
         }
 
-        public Vector3 GetLeftControllerAngularVelocity()
+        public void ReadRightControllerState(ref ControllerState controllerState)
         {
-            UpdateLeftControllerData();
-            return _leftControllerAngularVelocity;
+            UpdateRightControllerData();
+            controllerState.Position = _previousRightPosition;
+            controllerState.Rotation = _previousRightRotation;
+            controllerState.Velocity = _rightControllerVelocity;
+            controllerState.AngularVelocity = _rightControllerAngularVelocity;
+            controllerState.GripPressed = RightGripPressed;
         }
-
+        
         private void UpdateRightControllerData()
         {
             Vector3 currentPosition = _rightPositionAction.ReadValue<Vector3>();
@@ -173,7 +146,8 @@ namespace Infrastructure.XRInput
 
             float deltaTime = Time.deltaTime;
             _rightControllerVelocity = (currentPosition - _previousRightPosition) / deltaTime;
-            _rightControllerAngularVelocity = CalculateAngularVelocity(_previousRightRotation, currentRotation, deltaTime);
+            _rightControllerAngularVelocity = CalculateAngularVelocity(
+                _previousRightRotation, currentRotation, deltaTime);
 
             _previousRightPosition = currentPosition;
             _previousRightRotation = currentRotation;
@@ -186,7 +160,8 @@ namespace Infrastructure.XRInput
 
             float deltaTime = Time.deltaTime;
             _leftControllerVelocity = (currentPosition - _previousLeftPosition) / deltaTime;
-            _leftControllerAngularVelocity = CalculateAngularVelocity(_previousLeftRotation, currentRotation, deltaTime);
+            _leftControllerAngularVelocity = CalculateAngularVelocity(
+                _previousLeftRotation, currentRotation, deltaTime);
 
             _previousLeftPosition = currentPosition;
             _previousLeftRotation = currentRotation;

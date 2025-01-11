@@ -10,16 +10,16 @@ namespace Domain.Config
         // Constants
         private const float DefaultHeadWidthMeters = 0.1525f;  // 15.25cm
         private const float DefaultHeadLengthMeters = DefaultHeadWidthMeters;
-        private const float DEFAULT_HEAD_THICKNESS_METERS = 0.02f; // 2cm
-        private const float DEFAULT_HANDLE_LENGTH_METERS = 0.10f; // 10cm
-        private const float DEFAULT_HANDLE_RADIUS_METERS = 0.02f; // 2cm
+        private const float DefaultHeadThicknessMeters = 0.02f; // 2cm
+        private const float DefaultHandleLengthMeters = 0.10f; // 10cm
+        private const float DefaultHandleRadiusMeters = 0.02f; // 2cm
 
         // Properties
         public float HeadWidthMeters => DefaultHeadWidthMeters;
         public float HeadLengthMeters => DefaultHeadLengthMeters;
-        public float HeadThicknessMeters => DEFAULT_HEAD_THICKNESS_METERS;
-        public float HandleLengthMeters => DEFAULT_HANDLE_LENGTH_METERS;
-        public float HandleRadiusMeters => DEFAULT_HANDLE_RADIUS_METERS;
+        public float HeadThicknessMeters => DefaultHeadThicknessMeters;
+        public float HandleLengthMeters => DefaultHandleLengthMeters;
+        public float HandleRadiusMeters => DefaultHandleRadiusMeters;
 
         public float RubberBounciness => 0.75f;
         public float ThrowMultiplier => 1.0f;
@@ -35,5 +35,32 @@ namespace Domain.Config
         // Calibration offsets
         public Vector3 CalibrationPositionOffset { get; set; } = Vector3.zero;
         public Quaternion CalibrationRotationOffset { get; set; } = Quaternion.identity;
+
+        // Paddle geometry for collision detection
+        public PaddleGeometry Geometry { get; private set; }
+
+        /// <summary>
+        /// Initializes a new instance of the PaddleConfig class.
+        /// </summary>
+        public PaddleConfig()
+        {
+            Geometry = new PaddleGeometry
+            {
+                // Now interpret the geometry as X= length, Y= thickness, Z= width
+                ForehandLocalCenter = new Vector3(0, 0, +HeadWidthMeters/2f),
+                BackhandLocalCenter = new Vector3(0, 0, -HeadWidthMeters/2f),
+                HalfExtents = new Vector3(HeadLengthMeters/2f, HeadThicknessMeters/4f, HeadWidthMeters/2f),
+            };
+        }
+    }
+
+    /// <summary>
+    /// Represents the geometry of the paddle for collision detection.
+    /// </summary>
+    public class PaddleGeometry
+    {
+        public Vector3 ForehandLocalCenter { get; set; }
+        public Vector3 BackhandLocalCenter { get; set; }
+        public Vector3 HalfExtents { get; set; }
     }
 }

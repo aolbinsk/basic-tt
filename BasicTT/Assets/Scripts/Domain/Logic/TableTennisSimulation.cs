@@ -18,8 +18,8 @@ namespace Domain.Logic
 
         private readonly CircularBuffer<BallState> _ballStateBuffer = new(2);
         private PaddleState _currentPaddleState;
-        private HandState _leftHandState;
-        private HandState _rightHandState;
+        private ControllerState _leftControllerState;
+        private ControllerState _rightControllerState;
 
         private const string LOGPrefix = "[TableTennisSimulation] ";
 
@@ -49,13 +49,15 @@ namespace Domain.Logic
         /// </summary>
         private void InitializeStates()
         {
-            var initialState = _ballStateBuffer.GetNext();
-            initialState.Position = Vector3.zero;
-            initialState.Velocity = Vector3.zero;
-            initialState.Rotation = Quaternion.identity;
-            initialState.AngularVelocity = Vector3.zero;
-            initialState.IsHeld = false;
-
+            for (var i = 0; i < _ballStateBuffer.Capacity; i++)
+            {
+                var initialState = _ballStateBuffer.GetNext();       
+                initialState.Position = Vector3.zero;
+                initialState.Velocity = Vector3.zero;
+                initialState.Rotation = Quaternion.identity;
+                initialState.AngularVelocity = Vector3.zero;
+                initialState.IsHeld = false;
+            }
             _currentPaddleState = new PaddleState
             {
                 Position = Vector3.zero,
@@ -64,7 +66,7 @@ namespace Domain.Logic
                 AngularVelocity = Vector3.zero
             };
 
-            _leftHandState = new HandState
+            _leftControllerState = new ControllerState
             {
                 Position = Vector3.zero,
                 Rotation = Quaternion.identity,
@@ -73,7 +75,7 @@ namespace Domain.Logic
                 GripPressed = false
             };
 
-            _rightHandState = new HandState
+            _rightControllerState = new ControllerState
             {
                 Position = Vector3.zero,
                 Rotation = Quaternion.identity,
@@ -89,24 +91,21 @@ namespace Domain.Logic
         /// <param name="deltaTime">The time step for the update.</param>
         public void UpdateSimulation(float deltaTime)
         {
-            var previousBallState = _ballStateBuffer.GetNext();
+            var previousBallState = _ballStateBuffer.PeekCurrent();
             var currentBallState = _ballStateBuffer.GetNext();
 
             CopyState(previousBallState, currentBallState);
 
-            if (_leftHandState.GripPressed)
+            if (_leftControllerState.GripPressed)
             {
-                BallThrowLogic.HoldBall(
-                    ref currentBallState, _leftHandState.Position, _leftHandState.Rotation);
+                BallThrowLogic.HoldBall(ref currentBallState, _leftControllerState);
             }
             else
             {
                 if (currentBallState.IsHeld)
                 {
                     // Ball was held and now is being released
-                    BallThrowLogic.ReleaseBall(
-                        ref currentBallState, _leftHandState.Velocity,
-                        _leftHandState.AngularVelocity, _physicsConfig);
+                    BallThrowLogic.ReleaseBall(ref currentBallState, _leftControllerState, _physicsConfig);
                 }
             }
 
@@ -139,7 +138,7 @@ namespace Domain.Logic
         /// <returns>The current ball state.</returns>
         public BallState GetCurrentBallState()
         {
-            return _ballStateBuffer.GetNext();
+            return _ballStateBuffer.PeekCurrent();
         }
 
         /// <summary>
@@ -174,36 +173,36 @@ namespace Domain.Logic
         /// Gets the current state of the left hand.
         /// </summary>
         /// <returns>The current left hand state.</returns>
-        public HandState GetLeftHandState()
+        public ControllerState GetLeftHandState()
         {
-            return _leftHandState;
+            return _leftControllerState;
         }
 
         /// <summary>
         /// Gets the current state of the right hand.
         /// </summary>
         /// <returns>The current right hand state.</returns>
-        public HandState GetRightHandState()
+        public ControllerState GetRightHandState()
         {
-            return _rightHandState;
+            return _rightControllerState;
         }
 
         /// <summary>
         /// Sets the current state of the left hand.
         /// </summary>
-        /// <param name="handState">The new left hand state.</param>
-        public void SetLeftHandState(HandState handState)
+        /// <param name="controllerState">The new left hand state.</param>
+        public void SetLeftControllerState(ControllerState controllerState)
         {
-            _leftHandState = handState;
+            _leftControllerState = controllerState;
         }
 
         /// <summary>
         /// Sets the current state of the right hand.
         /// </summary>
-        /// <param name="handState">The new right hand state.</param>
-        public void SetRightHandState(HandState handState)
+        /// <param name="controllerState">The new right hand state.</param>
+        public void SetRightControllerState(ControllerState controllerState)
         {
-            _rightHandState = handState;
+            _rightControllerState = controllerState;
         }
 
         /// <summary>

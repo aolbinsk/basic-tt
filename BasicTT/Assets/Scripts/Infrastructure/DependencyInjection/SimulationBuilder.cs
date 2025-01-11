@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Domain.Config;
 using Domain.Interfaces;
@@ -78,7 +79,8 @@ namespace Infrastructure.DependencyInjection
                 _physicsEngine = new UnityPhysicsEngine();
             }
 
-            _collisionSystem = new CollisionDetectionSystem(_physicsConfig);
+            var environmentShapes = BuildEnvironmentShapes();
+            _collisionSystem = new CollisionDetectionSystem(_physicsConfig, environmentShapes);
 
             // Initialize scene builders
             _roomBuilder = new RoomBuilder(_physicsConfig);
@@ -106,6 +108,84 @@ namespace Infrastructure.DependencyInjection
                 _collisionSystem,
                 _renderer,
                 _physicsConfig);
+        }
+
+        private List<OrientedBox> BuildEnvironmentShapes()
+        {
+            List<OrientedBox> environmentShapes = new List<OrientedBox>();
+
+            // Floor
+            OrientedBox floorBox = new OrientedBox(
+                new Vector3(0f, -_physicsConfig.Room.WallHeightMeters / 2f, 0f),
+                Quaternion.identity,
+                new Vector3(_physicsConfig.Room.WidthMeters / 2f, _physicsConfig.Room.WallHeightMeters / 2f,
+                    _physicsConfig.Room.LengthMeters / 2f)
+            );
+            environmentShapes.Add(floorBox);
+
+            // Table
+            OrientedBox tableBox = new OrientedBox(
+                new Vector3(0f, _physicsConfig.Table.HeightMeters - (_physicsConfig.Table.ThicknessMeters / 2f), 0f),
+                Quaternion.identity,
+                new Vector3(_physicsConfig.Table.WidthMeters / 2f, _physicsConfig.Table.ThicknessMeters / 2f,
+                    _physicsConfig.Table.LengthMeters / 2f)
+            );
+            environmentShapes.Add(tableBox);
+
+            // Net
+            OrientedBox netBox = new OrientedBox(
+                new Vector3(0f, _physicsConfig.Table.HeightMeters + (_physicsConfig.Table.NetHeightMeters / 2f), 0f),
+                Quaternion.identity,
+                new Vector3((_physicsConfig.Table.WidthMeters + _physicsConfig.Table.NetHeightMeters) / 2f,
+                    _physicsConfig.Table.NetHeightMeters / 2f, 0.001f)
+            );
+            environmentShapes.Add(netBox);
+
+            // Walls and Ceiling (simplified examples)
+            float wallHeight = _physicsConfig.Room.WallHeightMeters;
+            float roomSize = _physicsConfig.Room.SizeMeters;
+
+            // Left Wall
+            OrientedBox leftWall = new OrientedBox(
+                new Vector3(-roomSize / 2f, wallHeight / 2f, 0f),
+                Quaternion.identity,
+                new Vector3(0.05f, wallHeight / 2f, roomSize / 2f)
+            );
+            environmentShapes.Add(leftWall);
+
+            // Right Wall
+            OrientedBox rightWall = new OrientedBox(
+                new Vector3(roomSize / 2f, wallHeight / 2f, 0f),
+                Quaternion.identity,
+                new Vector3(0.05f, wallHeight / 2f, roomSize / 2f)
+            );
+            environmentShapes.Add(rightWall);
+
+            // Back Wall
+            OrientedBox backWall = new OrientedBox(
+                new Vector3(0f, wallHeight / 2f, -roomSize / 2f),
+                Quaternion.identity,
+                new Vector3(roomSize / 2f, wallHeight / 2f, 0.05f)
+            );
+            environmentShapes.Add(backWall);
+
+            // Front Wall
+            OrientedBox frontWall = new OrientedBox(
+                new Vector3(0f, wallHeight / 2f, roomSize / 2f),
+                Quaternion.identity,
+                new Vector3(roomSize / 2f, wallHeight / 2f, 0.05f)
+            );
+            environmentShapes.Add(frontWall);
+
+            // Ceiling
+            OrientedBox ceiling = new OrientedBox(
+                new Vector3(0f, wallHeight, 0f),
+                Quaternion.identity,
+                new Vector3(roomSize / 2f, 0.05f, roomSize / 2f)
+            );
+            environmentShapes.Add(ceiling);
+
+            return environmentShapes;
         }
     }
 }

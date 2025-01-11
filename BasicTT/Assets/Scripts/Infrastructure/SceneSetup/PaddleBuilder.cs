@@ -92,20 +92,35 @@ namespace Infrastructure.SceneSetup
 
         private void SetupHitZones(GameObject paddleHead)
         {
-            // Add hit zones as child colliders to the paddle head
+            // Suppose the entire paddle thickness is 0.02f (2cm).
+            // We'll create two child objects: "ForehandSide" and "BackhandSide"
+            // Each will have half the thickness (0.01f).
+
+            float halfThickness = _config.Paddle.HeadThicknessMeters * 0.5f;
+            float fullWidth     = _config.Paddle.HeadWidthMeters;
+            float fullLength    = _config.Paddle.HeadLengthMeters;
+
+            // 1) Forehand side
             var forehandZone = new GameObject("ForehandSide");
             forehandZone.transform.SetParent(paddleHead.transform, false);
-            forehandZone.transform.localPosition = new Vector3(-0.5f, 0f, 0f); // Positioned on the left
-            forehandZone.transform.localScale = Vector3.one;
-            var forehandCollider = forehandZone.AddComponent<BoxCollider>();
-            forehandCollider.size = new Vector3(0.5f, 1f, 1f);
 
+            // Position the forehand collider so its center is 1/2 of the halfThickness away from the paddle center:
+            forehandZone.transform.localPosition = new Vector3(0f, 0f, +halfThickness * 0.5f); 
+            // Or whichever axis is "forward"
+
+            var forehandCollider = forehandZone.AddComponent<BoxCollider>();
+            forehandCollider.size = new Vector3(fullWidth, _config.Paddle.HeadThicknessMeters * 0.5f, fullLength);
+
+            // 2) Backhand side
             var backhandZone = new GameObject("BackhandSide");
             backhandZone.transform.SetParent(paddleHead.transform, false);
-            backhandZone.transform.localPosition = new Vector3(0.5f, 0f, 0f); // Positioned on the right
-            backhandZone.transform.localScale = Vector3.one;
+
+            // Position the backhand collider so its center is –1/2 of the halfThickness from the paddle center:
+            backhandZone.transform.localPosition = new Vector3(0f, 0f, -halfThickness * 0.5f);
+
             var backhandCollider = backhandZone.AddComponent<BoxCollider>();
-            backhandCollider.size = new Vector3(0.5f, 1f, 1f);
+            backhandCollider.size = new Vector3(fullWidth, _config.Paddle.HeadThicknessMeters * 0.5f, fullLength);
+
         }
     }
 }

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Domain.Config;
 using UnityEngine;
 using Domain.Entities;
@@ -43,20 +42,17 @@ namespace Infrastructure.Bridging
         private XROrigin _xrOrigin;
         private GameObject _ballGameObject;
         private GameObject _paddleGameObject;
-        private BoxCollider _forehandPaddleCollider;
-        private BoxCollider _backhandPaddleCollider;
-        private IPhysicsConfig _physicsConfig;
         private PaddleCalibration _paddleCalibration;
 
         private PaddleState _currentPaddleState;
         private BallState _currentBallState;
-        private HandState _leftHandState;
-        private HandState _rightHandState;
+        private ControllerState _leftControllerState;
+        private ControllerState _rightControllerState;
 
         private float _accumulatedTime;
         private const float SubStepInterval = 1.0f / (3 * 120);
 
-        private const string LOG_PREFIX = "[SimulationBridge] ";
+        private const string LOGPrefix = "[SimulationBridge] ";
 
         private void Awake()
         {
@@ -68,8 +64,8 @@ namespace Infrastructure.Bridging
             UpdateInput();
 
             // Set the updated hand states in the simulation
-            _simulation.SetLeftHandState(_leftHandState);
-            _simulation.SetRightHandState(_rightHandState);
+            _simulation.SetLeftControllerState(_leftControllerState);
+            _simulation.SetRightControllerState(_rightControllerState);
 
             // Set the updated paddle and ball states in the simulation
             _simulation.SetCurrentPaddleState(_currentPaddleState);
@@ -109,29 +105,19 @@ namespace Infrastructure.Bridging
             var installer = new SimulationBuilder();
             installer.Build(useCustomPhysics, xrOrigin.transform);
 
-            _physicsConfig = installer.GetPhysicsConfig();
             _simulation = installer.GetSimulation();
             _renderer = installer.GetRenderer();
             _ballGameObject = installer.GetBallGameObject();
             _paddleGameObject = installer.GetPaddleGameObject();
             _paddleCalibration = installer.GetPaddleCalibration();
-            Debug.Assert(_ballGameObject != null, LOG_PREFIX + "Ball GameObject not found.");
-            Debug.Assert(_paddleGameObject != null, LOG_PREFIX + "Paddle GameObject not found.");
-            
-            // Get colliders by name, ForehandSide, BackhandSide
-            _forehandPaddleCollider = _paddleGameObject.transform.Find("PaddleHead/ForehandSide")?.GetComponent<BoxCollider>();
-            _backhandPaddleCollider = _paddleGameObject.transform.Find("PaddleHead/BackhandSide")?.GetComponent<BoxCollider>();
-            Debug.Assert(_forehandPaddleCollider != null, LOG_PREFIX + "Forehand paddle collider not found.");
-            Debug.Assert(_backhandPaddleCollider != null, LOG_PREFIX + "Backhand paddle collider not found.");
+            Debug.Assert(_ballGameObject != null, LOGPrefix + "Ball GameObject not found.");
+            Debug.Assert(_paddleGameObject != null, LOGPrefix + "Paddle GameObject not found.");
             
             _currentBallState = _simulation.GetCurrentBallState();
             _currentPaddleState = _simulation.GetCurrentPaddleState();
-            
-            _currentPaddleState.ForehandCollider = _forehandPaddleCollider;
-            _currentPaddleState.BackhandCollider = _backhandPaddleCollider;
 
-            _leftHandState = new HandState();
-            _rightHandState = new HandState();
+            _leftControllerState = new ControllerState();
+            _rightControllerState = new ControllerState();
         }
 
         /// <summary>
@@ -152,28 +138,19 @@ namespace Infrastructure.Bridging
         /// </summary>
         private void UpdateInput()
         {
-            // Update left hand state
-            _leftHandState.Position = _inputManager.ReadFilteredLeftPosition();
-            _leftHandState.Rotation = _inputManager.ReadFilteredLeftRotation();
-            _leftHandState.Velocity = _inputManager.GetLeftControllerVelocity();
-            _leftHandState.AngularVelocity = _inputManager.GetLeftControllerAngularVelocity();
-            _leftHandState.GripPressed = _inputManager.LeftGripPressed;
-
-            // Update right hand state
-            _rightHandState.Position = _inputManager.ReadFilteredRightPosition();
-            _rightHandState.Rotation = _inputManager.ReadFilteredRightRotation();
-            _rightHandState.Velocity = _inputManager.GetRightControllerVelocity();
-            _rightHandState.AngularVelocity = _inputManager.GetRightControllerAngularVelocity();
-            _rightHandState.GripPressed = _inputManager.RightGripPressed;
+            _inputManager.ReadLeftControllerState(ref _leftControllerState);
+            _inputManager.ReadRightControllerState(ref _rightControllerState);
 
             // Apply calibration
             var calibratedPaddlePositionAndRotation = CalibrationUtility.ApplyCalibration(
-                _rightHandState.Position, _rightHandState.Rotation, _paddleCalibration);
-
+                _rightControllerState.Position, _rightControllerState.Rotation, _paddleCalibration);
             _currentPaddleState.Position = calibratedPaddlePositionAndRotation.Position;
             _currentPaddleState.Rotation = calibratedPaddlePositionAndRotation.Rotation;
-            _currentPaddleState.Velocity = _rightHandState.Velocity;
-            _currentPaddleState.AngularVelocity = _rightHandState.AngularVelocity;
+            
+            _currentPaddleState.Position = _rightControllerState.Position;
+            _currentPaddleState.Rotation = _rightControllerState.Rotation;            
+            _currentPaddleState.Velocity = _rightControllerState.Velocity;
+            _currentPaddleState.AngularVelocity = _rightControllerState.AngularVelocity;
         }
 
         /// <summary>
