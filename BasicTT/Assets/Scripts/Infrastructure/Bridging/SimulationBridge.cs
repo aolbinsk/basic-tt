@@ -1,3 +1,4 @@
+using System;
 using Domain.Config;
 using UnityEngine;
 using Domain.Entities;
@@ -63,19 +64,18 @@ namespace Infrastructure.Bridging
         {
             UpdateInput();
 
-            // Set the updated hand states in the simulation
             _simulation.SetLeftControllerState(_leftControllerState);
             _simulation.SetRightControllerState(_rightControllerState);
-
-            // Set the updated paddle and ball states in the simulation
             _simulation.SetCurrentPaddleState(_currentPaddleState);
-            _simulation.SetCurrentBallState(_currentBallState);
 
             ProcessSimulationSteps();
             
-            _currentBallState = _simulation.GetCurrentBallState();
-            _currentPaddleState = _simulation.GetCurrentPaddleState();
+            _simulation.GetBallState(ref _currentBallState);
+            _simulation.GetPaddleState(ref _currentPaddleState);
+        }
 
+        private void Update()
+        {
             UpdateVisuals();
         }
 
@@ -112,10 +112,9 @@ namespace Infrastructure.Bridging
             _paddleCalibration = installer.GetPaddleCalibration();
             Debug.Assert(_ballGameObject != null, LOGPrefix + "Ball GameObject not found.");
             Debug.Assert(_paddleGameObject != null, LOGPrefix + "Paddle GameObject not found.");
-            
-            _currentBallState = _simulation.GetCurrentBallState();
-            _currentPaddleState = _simulation.GetCurrentPaddleState();
 
+            _currentBallState = new BallState();
+            _currentPaddleState = new PaddleState();
             _leftControllerState = new ControllerState();
             _rightControllerState = new ControllerState();
         }
@@ -158,8 +157,8 @@ namespace Infrastructure.Bridging
         /// </summary>
         private void UpdateVisuals()
         {
-            _renderer.UpdateBallVisuals(_simulation.GetCurrentBallState());
-            _renderer.UpdatePaddleVisuals(_simulation.GetCurrentPaddleState());
+            _renderer.UpdateBallVisuals(_currentBallState);
+            _renderer.UpdatePaddleVisuals(_currentPaddleState);
         }
     }
 }

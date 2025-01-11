@@ -35,8 +35,10 @@ namespace Tests.Domain.Physics
         public void DetectCollision_NoCollision_ReturnsFalse()
         {
             // Arrange
-            _currentBallState.Position = new Vector3(0f, 0f, 0f);
-            _currentPaddleState.Position = new Vector3(10f, 0f, 0f);
+            _previousBallState.Position = new Vector3(0f, 0f, 0f);
+            _currentBallState.Position = new Vector3(100f, 100f, 100f);
+            _previousPaddleState.Position = new Vector3(-10f, -10f, -10f);
+            _currentPaddleState.Position = new Vector3(-100f, -100f, -100f);
 
             // Act
             var collisionData = _collisionDetectionSystem.DetectCollision(
@@ -45,6 +47,8 @@ namespace Tests.Domain.Physics
                 0.016f);
 
             // Assert
+            if (collisionData.Detected)
+                Debug.Log("Detected: " + collisionData.CollisionTag);
             Assert.IsFalse(collisionData.Detected);
         }
 
@@ -55,7 +59,6 @@ namespace Tests.Domain.Physics
             _previousBallState.Position = new Vector3(0f, 1f, 0f);
             _currentBallState.Position = new Vector3(0f, 0f, 0f); // Moving towards paddle
             _currentBallState.Velocity = new Vector3(0f, -1f, 0f);
-
             _currentPaddleState.Position = new Vector3(0f, 0f, 0f);
 
             // Act

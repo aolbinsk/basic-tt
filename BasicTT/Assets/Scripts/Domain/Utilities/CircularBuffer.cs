@@ -31,7 +31,7 @@ namespace Domain.Utilities
         /// Gets the next available object from the buffer.
         /// </summary>
         /// <returns>The next object.</returns>
-        public T GetNext()
+        public T IncrementAndGetNext()
         {
             _index = (_index + 1) % _buffer.Length;
             T item = _buffer[_index];
@@ -41,6 +41,12 @@ namespace Domain.Utilities
         public T PeekCurrent()
         {
             return _buffer[_index];
+        }
+        
+        public T PeekPrevious()
+        {
+            int previousIndex = (_index - 1 + _buffer.Length) % _buffer.Length;
+            return _buffer[previousIndex];
         }
     }
 }

@@ -173,7 +173,8 @@ namespace Tests.Domain.Physics
 
             // Act
             _simulation.UpdateSimulation(0.02f); // One frame of physics update
-            var heldBall = _simulation.GetCurrentBallState();
+            var heldBall = new BallState();
+            _simulation.GetBallState(ref heldBall);
           
             Assert.AreEqual(controllerVelocity, heldBall.Velocity, "Ball velocity should be same as controller.");
             Assert.IsTrue(heldBall.IsHeld, "Ball should still be held.");
@@ -188,7 +189,8 @@ namespace Tests.Domain.Physics
             _simulation.UpdateSimulation(0.02f); // One frame of physics update
 
             // Assert
-            var updatedBall = _simulation.GetCurrentBallState();
+            var updatedBall = new BallState();
+            _simulation.GetBallState(ref updatedBall);
             Assert.IsFalse(updatedBall.IsHeld, "Ball should no longer be held.");
             Assert.AreEqual(controllerVelocity.y + _physicsConfig.Gravity.y * 0.02f, updatedBall.Velocity.y, 0.1f, "Ball velocity should be continuous after release.");
         }

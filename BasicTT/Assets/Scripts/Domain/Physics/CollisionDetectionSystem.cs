@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Domain.Entities;
 using Domain.Interfaces;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace Domain.Physics
 {
@@ -64,6 +65,16 @@ namespace Domain.Physics
                     : bhCollisionData;
             }
 
+            if (fhCollisionData.Detected)
+            {
+                return fhCollisionData;
+            }
+
+            if (bhCollisionData.Detected)
+            {
+                return bhCollisionData;
+            }
+
             // Check for collisions with the environment
             return DetectEnvironmentCollision(previousBallState, currentBallState, deltaTime);
         }
@@ -76,33 +87,45 @@ namespace Domain.Physics
             Vector3 halfExtents,
             string sideName)
         {
-            // Build oriented boxes for the paddle side at previous and current states
-            OrientedBox paddleBox = BuildOrientedBox(
-                currentPaddleState.Position, 
-                currentPaddleState.Rotation, 
-                localCenter, 
-                halfExtents);
+            // Build oriented box for the paddle at its previous state
+            OrientedBox boxStart = BuildOrientedBox(
+                previousPaddleState.Position,
+                previousPaddleState.Rotation,
+                localCenter,
+                halfExtents
+            );
 
-            // Get ball radius
+            // Build oriented box for the paddle at its current state
+            OrientedBox boxEnd = BuildOrientedBox(
+                currentPaddleState.Position,
+                currentPaddleState.Rotation,
+                localCenter,
+                halfExtents
+            );
+
             float ballRadius = _config.Ball.DiameterMeters * 0.5f;
             
-            // Perform swept sphere to box collision detection
-            bool hit = SweptBoxCollisionPro.SweptSphereToOrientedBox(
-                previousBallState.Position, currentBallState.Position,
+            bool hit = SweptBoxCollisionPro.SweptSphereToMovingOrientedBox(
+                previousBallState.Position,
+                currentBallState.Position,
                 ballRadius,
-                paddleBox,
+                boxStart,
+                boxEnd,
                 out Vector3 collisionPoint,
                 out Vector3 collisionNormal,
-                out float timeOfImpact);
+                out float timeOfImpact
+            );
 
             if (hit)
             {
+                Debug.Log($"[CollisionDetectionSystem] Collision with {sideName} at {collisionPoint} with normal {collisionNormal}, " +
+                          $"time of impact: {timeOfImpact}, paddle position: {currentPaddleState.Position}, ball position: {currentBallState.Position}");
                 return new CollisionData
                 {
                     Detected = true,
                     Point = collisionPoint,
                     Normal = collisionNormal,
-                    TimeOfImpact = timeOfImpact,
+                    TimeOfImpact = timeOfImpact * deltaTime,
                     CollisionTag = sideName
                 };
             }
@@ -119,13 +142,10 @@ namespace Domain.Physics
             // Validate rotation
             if (!IsValidQuaternion(paddleRot))
             {
-                //Debug.LogWarning("Invalid quaternion detected= " + paddleRot);
-                // Happens when the paddle is not being tracked.
                 paddleRot = Quaternion.identity;
             }
 
             var worldCenter = paddleCenterPos + (paddleRot * localCenterOffset);
-            // TODO: Prevent thrashing the heap, reuse the same half extents vectors
             return new OrientedBox(worldCenter, paddleRot, halfExtents);
         }
 
@@ -144,10 +164,10 @@ namespace Domain.Physics
 
             foreach (var shape in _environmentShapes)
             {
-                bool hit = SweptBoxCollisionPro.SweptSphereToOrientedBox(
+                bool hit = SweptBoxCollisionPro.SweptSphereToMovingOrientedBox(
                     previousBallState.Position, currentBallState.Position,
                     ballRadius,
-                    shape,
+                    shape, shape,
                     out Vector3 collisionPoint,
                     out Vector3 collisionNormal,
                     out float timeOfImpact);
@@ -172,23 +192,6 @@ namespace Domain.Physics
         public void ResolveCollision(ref BallState ballState, PaddleState paddleState, CollisionData collisionData)
         {
             _collisionResolver.ResolveCollision(ref ballState, paddleState, collisionData, _config);
-        }
-    }
-
-    /// <summary>
-    /// Represents an oriented bounding box used for collision detection.
-    /// </summary>
-    public struct OrientedBox
-    {
-        public Vector3 Center;
-        public Quaternion Rotation;
-        public Vector3 HalfExtents;
-
-        public OrientedBox(Vector3 center, Quaternion rotation, Vector3 halfExtents)
-        {
-            Center = center;
-            Rotation = rotation;
-            HalfExtents = halfExtents;
         }
     }
 }

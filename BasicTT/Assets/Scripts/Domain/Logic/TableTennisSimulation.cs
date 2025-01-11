@@ -17,7 +17,7 @@ namespace Domain.Logic
         private readonly IPhysicsConfig _physicsConfig;
 
         private readonly CircularBuffer<BallState> _ballStateBuffer = new(2);
-        private PaddleState _currentPaddleState;
+        private readonly CircularBuffer<PaddleState> _paddleStateBuffer = new(2);
         private ControllerState _leftControllerState;
         private ControllerState _rightControllerState;
 
@@ -51,20 +51,22 @@ namespace Domain.Logic
         {
             for (var i = 0; i < _ballStateBuffer.Capacity; i++)
             {
-                var initialState = _ballStateBuffer.GetNext();       
+                var initialState = _ballStateBuffer.IncrementAndGetNext();
                 initialState.Position = Vector3.zero;
                 initialState.Velocity = Vector3.zero;
                 initialState.Rotation = Quaternion.identity;
                 initialState.AngularVelocity = Vector3.zero;
                 initialState.IsHeld = false;
             }
-            _currentPaddleState = new PaddleState
+
+            for (var i = 0; i < _paddleStateBuffer.Capacity; i++)
             {
-                Position = Vector3.zero,
-                Velocity = Vector3.zero,
-                Rotation = Quaternion.identity,
-                AngularVelocity = Vector3.zero
-            };
+                var paddleState = _paddleStateBuffer.IncrementAndGetNext();
+                paddleState.Position = Vector3.zero;
+                paddleState.Velocity = Vector3.zero;
+                paddleState.Rotation = Quaternion.identity;
+                paddleState.AngularVelocity = Vector3.zero;
+            }
 
             _leftControllerState = new ControllerState
             {
@@ -92,9 +94,12 @@ namespace Domain.Logic
         public void UpdateSimulation(float deltaTime)
         {
             var previousBallState = _ballStateBuffer.PeekCurrent();
-            var currentBallState = _ballStateBuffer.GetNext();
-
-            CopyState(previousBallState, currentBallState);
+            var currentBallState = _ballStateBuffer.IncrementAndGetNext();
+            CopyBallState(previousBallState, currentBallState);
+            
+            var previousPaddleState = _paddleStateBuffer.PeekPrevious();
+            var currentPaddleState = _paddleStateBuffer.PeekCurrent();
+            CopyPaddleState(previousPaddleState, currentPaddleState);
 
             if (_leftControllerState.GripPressed)
             {
@@ -115,35 +120,33 @@ namespace Domain.Logic
 
                 CollisionData collisionData = _collisionSystem.DetectCollision(
                     previousBallState, currentBallState,
-                    _currentPaddleState, _currentPaddleState,
+                    previousPaddleState, currentPaddleState,
                     deltaTime);
 
                 if (collisionData.Detected)
                 {
-                    _collisionSystem.ResolveCollision(ref currentBallState, _currentPaddleState, collisionData);
+                    _collisionSystem.ResolveCollision(ref currentBallState, currentPaddleState, collisionData);
                 }
             }
-
-            _renderer.UpdateBallVisuals(currentBallState);
-            _renderer.UpdatePaddleVisuals(_currentPaddleState);
         }
 
         /// <summary>
         /// Gets the current state of the ball.
         /// </summary>
         /// <returns>The current ball state.</returns>
-        public BallState GetCurrentBallState()
+        public BallState GetBallState(ref BallState targetBallState)
         {
-            return _ballStateBuffer.PeekCurrent();
+            CopyBallState(_ballStateBuffer.PeekCurrent(), targetBallState);
+            return targetBallState;
         }
 
         /// <summary>
         /// Gets the current state of the paddle.
         /// </summary>
         /// <returns>The current paddle state.</returns>
-        public PaddleState GetCurrentPaddleState()
+        public void GetPaddleState(ref PaddleState targetPaddleState)
         {
-            return _currentPaddleState;
+            CopyPaddleState(_paddleStateBuffer.PeekCurrent(), targetPaddleState);
         }
 
         /// <summary>
@@ -152,7 +155,8 @@ namespace Domain.Logic
         /// <param name="paddleState">The new paddle state.</param>
         public void SetCurrentPaddleState(PaddleState paddleState)
         {
-            _currentPaddleState = paddleState;
+            var currentPaddleState = _paddleStateBuffer.IncrementAndGetNext();
+            CopyPaddleState(paddleState, currentPaddleState);
         }
 
         /// <summary>
@@ -161,8 +165,8 @@ namespace Domain.Logic
         /// <param name="ballState">The new ball state.</param>
         public void SetCurrentBallState(BallState ballState)
         {
-            var currentBallState = _ballStateBuffer.GetNext();
-            CopyState(ballState, currentBallState);
+            var currentBallState = _ballStateBuffer.IncrementAndGetNext();
+            CopyBallState(ballState, currentBallState);
         }
 
         /// <summary>
@@ -206,13 +210,26 @@ namespace Domain.Logic
         /// </summary>
         /// <param name="source">The source BallState.</param>
         /// <param name="target">The target BallState.</param>
-        private void CopyState(BallState source, BallState target)
+        private void CopyBallState(BallState source, BallState target)
         {
             target.Position = source.Position;
             target.Velocity = source.Velocity;
             target.Rotation = source.Rotation;
             target.AngularVelocity = source.AngularVelocity;
             target.IsHeld = source.IsHeld;
+        }
+
+        /// <summary>
+        /// Copies the state data from one PaddleState to another.
+        /// </summary>
+        /// <param name="source">The source PaddleState.</param>
+        /// <param name="target">The target PaddleState.</param>
+        private void CopyPaddleState(PaddleState source, PaddleState target)
+        {
+            target.Position = source.Position;
+            target.Velocity = source.Velocity;
+            target.Rotation = source.Rotation;
+            target.AngularVelocity = source.AngularVelocity;
         }
     }
 }
