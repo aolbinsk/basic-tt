@@ -1,4 +1,3 @@
-using System;
 using Domain.Config;
 using UnityEngine;
 using Domain.Entities;
@@ -51,7 +50,8 @@ namespace Infrastructure.Bridging
         private ControllerState _rightControllerState;
 
         private float _accumulatedTime;
-        private const float SubStepInterval = 1.0f / (3 * 120);
+        private const float TargetSimulationUpdateFrequencyWithSubStepping = 3 * 120;
+        private const float SubStepInterval = 1.0f / TargetSimulationUpdateFrequencyWithSubStepping;
 
         private const string LOGPrefix = "[SimulationBridge] ";
 
