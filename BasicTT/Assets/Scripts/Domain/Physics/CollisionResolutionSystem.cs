@@ -59,8 +59,6 @@ namespace Domain.Physics
                 ball.Velocity = Vector3.Reflect(incomingVelocity, normal) * restitution;
                 ball.AngularVelocity *= (1f - config.Table.Friction);
             }
-            float ballRadius = config.Ball.DiameterMeters * 0.5f;
-            ball.Position = collision.Point + normal * (ballRadius + 0.001f);
         }
     }
 }

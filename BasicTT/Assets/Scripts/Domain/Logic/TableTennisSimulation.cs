@@ -111,6 +111,7 @@ namespace Domain.Logic
 
             if (!currentBallState.IsHeld)
             {
+                // Integrate partially
                 _physicsEngine.Integrate(ref currentBallState, deltaTime);
 
                 CollisionData collisionData = _collisionSystem.DetectCollision(
@@ -120,7 +121,32 @@ namespace Domain.Logic
 
                 if (collisionData.Detected)
                 {
-                    _collisionSystem.ResolveCollision(ref currentBallState, currentPaddleState, collisionData);
+                    float fraction = collisionData.TimeOfImpact / deltaTime;
+                    if (fraction > 0f && fraction < 1f)
+                    {
+                        // Partial step approach:
+                        // a) Revert to previousBallState
+                        CopyBallState(previousBallState, currentBallState);
+
+                        // b) Integrate partial dt up to collision
+                        float partialT = fraction * deltaTime;
+                        _physicsEngine.Integrate(ref currentBallState, partialT);
+
+                        // c) Resolve collision
+                        _collisionSystem.ResolveCollision(ref currentBallState, currentPaddleState, collisionData);
+
+                        // d) Integrate remainder
+                        float remainT = deltaTime - partialT;
+                        if (remainT > 0f)
+                        {
+                            _physicsEngine.Integrate(ref currentBallState, remainT);
+                        }
+                    }
+                    else
+                    {
+                        // If the fraction is 0 or 1, we already integrated fully or no partial step needed
+                        _collisionSystem.ResolveCollision(ref currentBallState, currentPaddleState, collisionData);
+                    }
                 }
             }
         }
