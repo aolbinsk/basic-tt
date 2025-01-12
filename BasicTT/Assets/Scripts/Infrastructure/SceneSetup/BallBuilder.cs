@@ -26,16 +26,25 @@ namespace Infrastructure.SceneSetup
         /// <returns>The constructed ball GameObject.</returns>
         public GameObject BuildBall()
         {
-            // 1) Create a sphere primitive for the ball
-            GameObject ball = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            ball.name = "TableTennisBall";
+            // Create a root object for the ball
+            GameObject ball = new GameObject("TableTennisBall");
             ball.layer = LayerMask.NameToLayer("Ball");
 
-            // 2) Scale the sphere to match the ball diameter
-            float ballDiameterMeters = _config.Ball.DiameterMeters;
-            ball.transform.localScale = Vector3.one * ballDiameterMeters;
+            // Create a child object for the ball visuals
+            GameObject ballVisuals = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            ballVisuals.name = "BallVisuals";
+            ballVisuals.transform.SetParent(ball.transform, false);
+            ballVisuals.transform.localScale = Vector3.one * _config.Ball.DiameterMeters;
 
-            // 3) Add a Rigidbody for physics
+            // Remove the collider from the visuals
+            Object.Destroy(ballVisuals.GetComponent<SphereCollider>());
+
+            // Add a SphereCollider to the root object
+            SphereCollider sphereCollider = ball.AddComponent<SphereCollider>();
+            sphereCollider.radius = _config.Ball.DiameterMeters * 0.5f;
+            sphereCollider.material = _config.Ball.Material;
+
+            // Add a Rigidbody to the root object
             Rigidbody rb = ball.AddComponent<Rigidbody>();
             rb.mass = _config.Ball.MassKg;
             rb.linearDamping = 0f; // Minimal air drag handled by custom physics
@@ -44,12 +53,8 @@ namespace Infrastructure.SceneSetup
             rb.isKinematic = true;
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
-            // 4) Assign a bouncy or custom physics material to the SphereCollider
-            SphereCollider sphereCollider = ball.GetComponent<SphereCollider>();
-            sphereCollider.material = _config.Ball.Material;
-
-            // 5) Assign a basic material (color) or custom texture to the ball
-            Renderer renderer = ball.GetComponent<Renderer>();
+            // Assign a basic material (color) or custom texture to the ball
+            Renderer renderer = ballVisuals.GetComponent<Renderer>();
             if (renderer != null)
             {
                 Material ballMat = new Material(Shader.Find("Universal Render Pipeline/Lit"))
@@ -59,8 +64,9 @@ namespace Infrastructure.SceneSetup
                 renderer.material = ballMat;
             }
 
-            // 6) Create a child object to serve as a “marking ring” for spin visibility
-            CreateSpinRing(ball);
+            // Create a child object to serve as a “marking ring” for spin visibility
+            CreateSpinRing(ball, new Vector3(90f, 0f, 0f));
+            CreateSpinRing(ball, Vector3.zero);
 
             return ball;
         }
@@ -69,7 +75,8 @@ namespace Infrastructure.SceneSetup
         /// Creates a visual spin ring around the ball for better spin visibility.
         /// </summary>
         /// <param name="parentBall">The parent ball GameObject to attach the spin ring to.</param>
-        private void CreateSpinRing(GameObject parentBall)
+        /// <param name="rotation">The rotation of the spin ring.</param>
+        private void CreateSpinRing(GameObject parentBall, Vector3 rotation)
         {
             // The ring is a thin “cylinder” placed around the ball’s equator
             GameObject ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -79,16 +86,18 @@ namespace Infrastructure.SceneSetup
             // Scale the ring:
             //  - X, Z = ball diameter + small offset (to sit just outside the sphere)
             //  - Y = small thickness
-            float ballDiameter = parentBall.transform.localScale.x;
-            float ringRadius = ballDiameter * 0.51f; // Slightly bigger than the sphere’s radius
-            float ringThickness = 0.02f; // Thickness of the ring “belt”
+            float ballDiameter = parentBall.GetComponent<SphereCollider>().radius * 2f;
+            float ringDiameter = ballDiameter + 0.0005f; // Slightly bigger than the sphere
+            float ringThickness = 0.001f; // Thickness of the ring “belt”
 
             // Cylinder in Unity is aligned along Y-axis, so scale (X=diameter, Y=height, Z=diameter).
             ring.transform.localScale = new Vector3(
-                ringRadius,
+                ringDiameter,
                 ringThickness,
-                ringRadius
+                ringDiameter
             );
+            // Rotate the ring by 90° so that it wraps horizontally. E.g.:
+            ring.transform.localEulerAngles = rotation;
 
             // Position so that the ring is around the equator
             ring.transform.localPosition = Vector3.zero;
