@@ -118,8 +118,8 @@ namespace Domain.Physics
 
             if (hit)
             {
-                Debug.Log($"[CollisionDetectionSystem] Collision with {sideName} at {collisionPoint} with normal {collisionNormal}, " +
-                          $"time of impact: {timeOfImpact}, paddle position: {currentPaddleState.Position}, ball position: {currentBallState.Position}");
+                //Debug.Log($"[CollisionDetectionSystem] Collision with {sideName} at {collisionPoint} with normal {collisionNormal}, " +
+                //          $"time of impact: {timeOfImpact}, paddle position: {currentPaddleState.Position}, ball position: {currentBallState.Position}");
                 return new CollisionData
                 {
                     Detected = true,

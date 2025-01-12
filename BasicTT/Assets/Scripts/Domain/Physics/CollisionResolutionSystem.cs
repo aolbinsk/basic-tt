@@ -28,8 +28,8 @@ namespace Domain.Physics
 
             if (collision.CollisionTag is "Forehand" or "Backhand")
             {
-                Debug.Log($"[CollisionResolutionSystem] Collision with {collision.CollisionTag} at {collision.Point} with normal {collision.Normal}");
-                Debug.Log($"[CollisionResolutionSystem] Incoming velocity: {incomingVelocity}, angular velocity: {ball.AngularVelocity}");
+                //Debug.Log($"[CollisionResolutionSystem] Collision with {collision.CollisionTag} at {collision.Point} with normal {collision.Normal}");
+                //Debug.Log($"[CollisionResolutionSystem] Incoming velocity: {incomingVelocity}, angular velocity: {ball.AngularVelocity}");
 
                 // Collision with paddle
                 bool isForehand = collision.CollisionTag == "Forehand";
@@ -49,8 +49,8 @@ namespace Domain.Physics
                 float spinMagnitude = relativeVelocity.magnitude * config.Player.SpinTransferCoefficient * spinMultiplier;
                 ball.AngularVelocity += spinAxis * spinMagnitude;
                 
-                Debug.Log($"[CollisionResolutionSystem] Spin axis: {spinAxis}, spin magnitude: {spinMagnitude}");
-                Debug.Log($"[CollisionResolutionSystem] Outgoing velocity: {ball.Velocity}, angular velocity: {ball.AngularVelocity}");
+                //Debug.Log($"[CollisionResolutionSystem] Spin axis: {spinAxis}, spin magnitude: {spinMagnitude}");
+                //Debug.Log($"[CollisionResolutionSystem] Outgoing velocity: {ball.Velocity}, angular velocity: {ball.AngularVelocity}");
             }
             else
             {
