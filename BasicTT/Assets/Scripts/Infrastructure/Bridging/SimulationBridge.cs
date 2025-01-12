@@ -71,7 +71,6 @@ namespace Infrastructure.Bridging
             ProcessSimulationSteps();
             
             _simulation.GetBallState(ref _currentBallState);
-            _simulation.GetPaddleState(ref _currentPaddleState);
         }
 
         private void Update()
