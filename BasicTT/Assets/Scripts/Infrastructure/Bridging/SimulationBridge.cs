@@ -1,5 +1,4 @@
 using Domain.Config;
-using UnityEngine;
 using Domain.Entities;
 using Domain.Interfaces;
 using Domain.Logic;
@@ -7,6 +6,7 @@ using Infrastructure.DependencyInjection;
 using Infrastructure.Utilities;
 using Infrastructure.XRInput;
 using Unity.XR.CoreUtils;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using Debug = UnityEngine.Debug;
 
@@ -23,7 +23,7 @@ namespace Infrastructure.Bridging
 
         [Header("Dependencies")]
         [SerializeField] private XROrigin xrOrigin;
-        
+
         [Header("Right Controller Input Settings")]
         [SerializeField] private InputActionReference rightControllerPositionAction;
         [SerializeField] private InputActionReference rightControllerRotationAction;
@@ -49,6 +49,8 @@ namespace Infrastructure.Bridging
         private ControllerState _leftControllerState;
         private ControllerState _rightControllerState;
 
+        private IPaddlePredictor _paddlePredictor;
+
         private float _accumulatedTime;
         private const float TargetSimulationUpdateFrequencyWithSubStepping = 3 * 120;
         private const float SubStepInterval = 1.0f / TargetSimulationUpdateFrequencyWithSubStepping;
@@ -66,10 +68,9 @@ namespace Infrastructure.Bridging
 
             _simulation.SetLeftControllerState(_leftControllerState);
             _simulation.SetRightControllerState(_rightControllerState);
-            _simulation.SetCurrentPaddleState(_currentPaddleState);
 
             ProcessSimulationSteps();
-            
+
             _simulation.GetBallState(ref _currentBallState);
         }
 
@@ -97,7 +98,7 @@ namespace Infrastructure.Bridging
             _xrOrigin = xrOrigin;
 
             _inputManager = new WorldSpaceAdapterInputManager(
-                coreInputManager, 
+                coreInputManager,
                 _xrOrigin.CameraFloorOffsetObject.transform);
 
             // Get dependencies from installer
@@ -116,6 +117,9 @@ namespace Infrastructure.Bridging
             _currentPaddleState = new PaddleState();
             _leftControllerState = new ControllerState();
             _rightControllerState = new ControllerState();
+
+            // Initialize paddle predictor
+            _paddlePredictor = new PaddlePrediction.LinearPaddlePredictor();
         }
 
         /// <summary>
@@ -123,12 +127,25 @@ namespace Infrastructure.Bridging
         /// </summary>
         private void ProcessSimulationSteps()
         {
+            // Store the last known paddle state
+            PaddleState lastKnownPaddleState = _currentPaddleState.Clone();
+
             _accumulatedTime += Time.fixedDeltaTime;
             while (_accumulatedTime >= SubStepInterval)
             {
+                // Predict paddle state for the sub-step
+                PaddleState predictedPaddle = _paddlePredictor.PredictPose(lastKnownPaddleState, SubStepInterval);
+
+                // Provide predicted pose to simulation
+                _simulation.SetCurrentPaddleState(predictedPaddle);
+
                 _simulation.UpdateSimulation(SubStepInterval);
+
                 _accumulatedTime -= SubStepInterval;
             }
+
+            // Update the last known paddle state with the final user input
+            _currentPaddleState = lastKnownPaddleState.Clone();
         }
 
         /// <summary>
@@ -144,9 +161,7 @@ namespace Infrastructure.Bridging
                 _rightControllerState.Position, _rightControllerState.Rotation, _paddleCalibration);
             _currentPaddleState.Position = calibratedPaddlePositionAndRotation.Position;
             _currentPaddleState.Rotation = calibratedPaddlePositionAndRotation.Rotation;
-            
-            _currentPaddleState.Position = _rightControllerState.Position;
-            _currentPaddleState.Rotation = _rightControllerState.Rotation;            
+
             _currentPaddleState.Velocity = _rightControllerState.Velocity;
             _currentPaddleState.AngularVelocity = _rightControllerState.AngularVelocity;
         }
