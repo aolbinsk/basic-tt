@@ -14,8 +14,6 @@ namespace Domain.Physics
             if (!ball.IsHeld)
             {
                 ball.IsHeld = true;
-                
-                Debug.Log("Ball held by player");
             }
             ball.Position = controllerState.Position;
             ball.Rotation = controllerState.Rotation;
@@ -58,8 +56,6 @@ namespace Domain.Physics
                 ball.Velocity = ball.Velocity.normalized * maxVelocity;
                 Debug.LogWarning($"Ball velocity clamped to {maxVelocity} m/s");
             }
-            
-            Debug.Log("Ball released by player");
         }
     }
 }
