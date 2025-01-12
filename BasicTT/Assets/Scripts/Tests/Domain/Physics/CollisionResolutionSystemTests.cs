@@ -3,7 +3,6 @@ using Domain.Physics;
 using Domain.Entities;
 using Domain.Config;
 using UnityEngine;
-using Domain.Interfaces;
 
 namespace Tests.Domain.Physics
 {

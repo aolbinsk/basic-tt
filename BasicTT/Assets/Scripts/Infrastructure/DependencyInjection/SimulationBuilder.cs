@@ -106,7 +106,6 @@ namespace Infrastructure.DependencyInjection
             _simulation = new TableTennisSimulation(
                 _physicsEngine,
                 _collisionSystem,
-                _renderer,
                 _physicsConfig);
         }
 

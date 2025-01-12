@@ -13,7 +13,6 @@ namespace Domain.Logic
     {
         private readonly IPhysicsEngine _physicsEngine;
         private readonly ICollisionSystem _collisionSystem;
-        private readonly IRenderer _renderer;
         private readonly IPhysicsConfig _physicsConfig;
 
         private readonly CircularBuffer<BallState> _ballStateBuffer = new(2);
@@ -28,17 +27,14 @@ namespace Domain.Logic
         /// </summary>
         /// <param name="physicsEngine">The physics engine implementation.</param>
         /// <param name="collisionSystem">The collision system implementation.</param>
-        /// <param name="renderer">The renderer implementation.</param>
         /// <param name="physicsConfig">The physics configuration.</param>
         public TableTennisSimulation(
             IPhysicsEngine physicsEngine,
             ICollisionSystem collisionSystem,
-            IRenderer renderer,
             IPhysicsConfig physicsConfig)
         {
             _physicsEngine = physicsEngine;
             _collisionSystem = collisionSystem;
-            _renderer = renderer;
             _physicsConfig = physicsConfig;
 
             InitializeStates();

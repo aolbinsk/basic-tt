@@ -23,14 +23,12 @@ namespace Tests.Domain.Physics
             _physicsConfig = new PhysicsConfig();
 
             // Create mock objects for simulation dependencies
-            var mockRenderer = new UnityRenderer(new GameObject(), new GameObject());
             var collisionSystem = new CollisionDetectionSystem(_physicsConfig);
             var physicsEngine = new CustomPhysicsEngine(_physicsConfig);
 
             _simulation = new TableTennisSimulation(
                 physicsEngine,
                 collisionSystem,
-                mockRenderer,
                 _physicsConfig);
         }
 
