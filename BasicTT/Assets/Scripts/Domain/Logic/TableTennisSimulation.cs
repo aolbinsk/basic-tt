@@ -99,7 +99,6 @@ namespace Domain.Logic
             
             var previousPaddleState = _paddleStateBuffer.PeekPrevious();
             var currentPaddleState = _paddleStateBuffer.PeekCurrent();
-            CopyPaddleState(previousPaddleState, currentPaddleState);
 
             if (_leftControllerState.GripPressed)
             {
