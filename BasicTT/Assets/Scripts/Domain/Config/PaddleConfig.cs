@@ -15,7 +15,8 @@ namespace Domain.Config
         private const float DefaultRubberThicknessMeters = 0.002f; // 2mm
         private const float DefaultHandleLengthMeters = 0.10f; // 10cm
         private const float DefaultHandleRadiusMeters = 0.013f; // 1.3cm
-        
+        private const float DefaultFrictionCoefficient = 0.4f; // Tacky rubber, 0.8 for normal
+
 
         // Properties
         public float HeadWidthMeters => DefaultHeadWidthMeters;
@@ -25,6 +26,7 @@ namespace Domain.Config
         public float HandleLengthMeters => DefaultHandleLengthMeters;
         public float HandleRadiusMeters => DefaultHandleRadiusMeters;
 
+        public float FrictionCoefficient => DefaultFrictionCoefficient;
         public float RubberBounciness => 0.75f;
         public float ThrowMultiplier => 1.0f;
         public float SpinMultiplier => 0.8f;

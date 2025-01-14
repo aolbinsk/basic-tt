@@ -77,5 +77,37 @@ namespace Tests.Domain.Physics
             // Assert
             Assert.Greater(ballState.Velocity.z, 0f);
         }
+        
+        [Test]
+        public void Collision_Forehand_ImpartsSpin()
+        {
+            // Arrange
+            var config = new PhysicsConfig { /* put small angular drag, etc. */ };
+            var resolutionSystem = new CollisionResolutionSystem();
+    
+            var ballState = new BallState
+            {
+                Velocity = new Vector3(2f, 0f, 0f), // tangential velocity
+                AngularVelocity = Vector3.zero
+            };
+            var paddleState = new PaddleState
+            {
+                Velocity = Vector3.zero // stationary paddle
+            };
+            var collisionData = new CollisionData
+            {
+                Detected = true,
+                CollisionTag = "Forehand",
+                Normal = Vector3.up // or whichever normal the test uses
+            };
+    
+            // Act
+            resolutionSystem.ResolveCollision(ref ballState, paddleState, collisionData, config);
+    
+            // Assert
+            Assert.IsTrue(ballState.AngularVelocity.magnitude > 0.01f, 
+                "Expected non-zero spin from a tangential forehand collision.");
+        }
+
     }
 }

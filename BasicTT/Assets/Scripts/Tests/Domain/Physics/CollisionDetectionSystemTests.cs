@@ -44,11 +44,14 @@ namespace Tests.Domain.Physics
             var collisionData = _collisionDetectionSystem.DetectCollision(
                 _previousBallState, _currentBallState,
                 _previousPaddleState, _currentPaddleState,
-                0.016f);
+                1f);
 
             // Assert
             if (collisionData.Detected)
                 Debug.Log("Detected: " + collisionData.CollisionTag);
+                Debug.Log("Normal: " + collisionData.Normal);
+                Debug.Log("Point: " + collisionData.Point);
+                
             Assert.IsFalse(collisionData.Detected);
         }
 

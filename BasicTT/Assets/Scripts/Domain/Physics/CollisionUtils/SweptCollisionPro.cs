@@ -1,3 +1,4 @@
+using Domain.Physics.CollisionUtils;
 using UnityEngine;
 
 namespace Domain.Physics
@@ -70,9 +71,9 @@ namespace Domain.Physics
 
         private static bool RayAABBIntersection(Vector3 rayOrigin, Vector3 rayDir, Vector3 boxMin, Vector3 boxMax, out float tEnter, out Vector3 normal)
         {
-            tEnter = 0f;
-            float tExit = 1f;
-            normal = Vector3.zero;
+            float tEnterCandidate = -Mathf.Infinity;
+            float tExitCandidate = Mathf.Infinity;
+            Vector3 candidateNormal = Vector3.zero;
             Vector3 invDir = new Vector3(
                 1f / (rayDir.x != 0 ? rayDir.x : Mathf.Epsilon),
                 1f / (rayDir.y != 0 ? rayDir.y : Mathf.Epsilon),
@@ -89,24 +90,28 @@ namespace Domain.Physics
                     (t1, t2) = (t2, t1);
                 }
 
-                if (t1 > tEnter)
+                if (t1 > tEnterCandidate)
                 {
-                    tEnter = t1;
-                    normal = Vector3.zero;
-                    SetComponent(ref normal, i, GetComponent(rayDir, i) > 0 ? -1f : 1f);
+                    tEnterCandidate = t1;
+                    candidateNormal = Vector3.zero;
+                    SetComponent(ref candidateNormal, i, GetComponent(rayDir, i) > 0 ? -1f : 1f);
                 }
 
-                if (t2 < tExit)
+                if (t2 < tExitCandidate)
                 {
-                    tExit = t2;
+                    tExitCandidate = t2;
                 }
 
-                if (tEnter > tExit)
+                if (tEnterCandidate > tExitCandidate)
                 {
+                    tEnter = tEnterCandidate;
+                    normal = candidateNormal;
                     return false;
                 }
             }
 
+            tEnter = tEnterCandidate;
+            normal = candidateNormal;
             return true;
         }
 
@@ -135,23 +140,6 @@ namespace Domain.Physics
                     vector.z = value;
                     break;
             }
-        }
-    }
-
-    /// <summary>
-    /// Represents an oriented bounding box used for collision detection.
-    /// </summary>
-    public struct OrientedBox
-    {
-        public Vector3 Center;
-        public Quaternion Rotation;
-        public Vector3 HalfExtents;
-
-        public OrientedBox(Vector3 center, Quaternion rotation, Vector3 halfExtents)
-        {
-            Center = center;
-            Rotation = rotation;
-            HalfExtents = halfExtents;
         }
     }
 }

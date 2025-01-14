@@ -4,6 +4,7 @@ using Domain.Config;
 using Domain.Interfaces;
 using Domain.Logic;
 using Domain.Physics;
+using Domain.Physics.CollisionUtils;
 using Infrastructure.Config;
 using Infrastructure.CustomPhysics;
 using Infrastructure.Rendering;

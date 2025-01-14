@@ -153,6 +153,10 @@ namespace Infrastructure.Bridging
         /// </summary>
         private void UpdateInput()
         {
+            if (_inputManager == null)
+            {
+                return;
+            }
             _inputManager.ReadLeftControllerState(ref _leftControllerState);
             _inputManager.ReadRightControllerState(ref _rightControllerState);
 
@@ -171,6 +175,10 @@ namespace Infrastructure.Bridging
         /// </summary>
         private void UpdateVisuals()
         {
+            if (_renderer == null)
+            {
+                return;
+            }
             _renderer.UpdateBallVisuals(_currentBallState);
             _renderer.UpdatePaddleVisuals(_currentPaddleState);
         }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Domain.Entities;
 using Domain.Interfaces;
+using Domain.Physics.CollisionUtils;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -105,7 +106,7 @@ namespace Domain.Physics
 
             float ballRadius = _config.Ball.DiameterMeters * 0.5f;
             
-            bool hit = SweptBoxCollisionPro.SweptSphereToMovingOrientedBox(
+            bool hit = SphereObb.SweptSphereToObb(
                 previousBallState.Position,
                 currentBallState.Position,
                 ballRadius,
@@ -164,7 +165,7 @@ namespace Domain.Physics
 
             foreach (var shape in _environmentShapes)
             {
-                bool hit = SweptBoxCollisionPro.SweptSphereToMovingOrientedBox(
+                bool hit = SphereObb.SweptSphereToObb(
                     previousBallState.Position, currentBallState.Position,
                     ballRadius,
                     shape, shape,
@@ -179,8 +180,8 @@ namespace Domain.Physics
                     {
                         Detected = true,
                         Point = collisionPoint,
-                        Normal = collisionNormal,
                         TimeOfImpact = timeOfImpact * deltaTime,
+                        Normal = collisionNormal,
                         CollisionTag = "Environment"
                     };
                 }
