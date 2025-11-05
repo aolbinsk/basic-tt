@@ -66,6 +66,8 @@ set(INFRASTRUCTURE_SOURCES
     src/infrastructure/rendering/Mesh.cpp
     src/infrastructure/rendering/Shader.cpp
     src/infrastructure/rendering/Material.cpp
+    src/infrastructure/rendering/PrimitiveGeometry.cpp
+    src/infrastructure/rendering/SceneGeometryBuilder.cpp
     src/infrastructure/game/GameLoop.cpp
     src/infrastructure/game/SimulationBridge.cpp
     src/infrastructure/utilities/Logger.cpp
