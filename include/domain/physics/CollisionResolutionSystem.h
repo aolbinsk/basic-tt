@@ -7,6 +7,7 @@
 #include "../config/PaddleConfig.h"
 #include "../config/TableConfig.h"
 #include "../config/PhysicsConfig.h"
+#include "RestitutionModel.h"
 
 namespace BasicTT {
 

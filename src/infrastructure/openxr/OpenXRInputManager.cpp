@@ -1,11 +1,15 @@
 #include "../../../include/infrastructure/openxr/OpenXRInputManager.h"
 #include <iostream>
 #include <cstring>
+#include <cmath>
 
 namespace BasicTT {
 
 OpenXRInputManager::OpenXRInputManager(XrInstance instance, XrSession session)
-    : m_instance(instance), m_session(session) {
+    : m_instance(instance)
+    , m_session(session)
+    , m_leftHistory(10)   // Keep last 10 samples for velocity estimation
+    , m_rightHistory(10) {
     m_leftController = ControllerState(ControllerHand::Left);
     m_rightController = ControllerState(ControllerHand::Right);
 }
@@ -193,6 +197,11 @@ void OpenXRInputManager::UpdateController(ControllerHand hand, XrTime displayTim
     const ControllerState& prevController = (hand == ControllerHand::Left) ? m_prevLeftController : m_prevRightController;
     XrSpace handSpace = (hand == ControllerHand::Left) ? m_leftHandSpace : m_rightHandSpace;
 
+    // Get Kalman filters for this hand
+    KalmanFilterVector3& posFilter = (hand == ControllerHand::Left) ? m_leftPosFilter : m_rightPosFilter;
+    KalmanFilterQuaternion& rotFilter = (hand == ControllerHand::Left) ? m_leftRotFilter : m_rightRotFilter;
+    CircularBuffer<ControllerState>& history = (hand == ControllerHand::Left) ? m_leftHistory : m_rightHistory;
+
     XrPath subactionPath;
     const char* pathStr = (hand == ControllerHand::Left) ? "/user/hand/left" : "/user/hand/right";
     xrStringToPath(m_instance, pathStr, &subactionPath);
@@ -204,24 +213,48 @@ void OpenXRInputManager::UpdateController(ControllerHand hand, XrTime displayTim
     if (XR_SUCCEEDED(result) && (location.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)) {
         controller.isActive = true;
 
-        // Update position
-        controller.position.x = location.pose.position.x;
-        controller.position.y = location.pose.position.y;
-        controller.position.z = location.pose.position.z;
+        // RAW position from OpenXR
+        Vector3 rawPosition(
+            location.pose.position.x,
+            location.pose.position.y,
+            location.pose.position.z
+        );
 
-        // Update rotation
-        controller.rotation.x = location.pose.orientation.x;
-        controller.rotation.y = location.pose.orientation.y;
-        controller.rotation.z = location.pose.orientation.z;
-        controller.rotation.w = location.pose.orientation.w;
+        // RAW rotation from OpenXR
+        Quaternion rawRotation(
+            location.pose.orientation.x,
+            location.pose.orientation.y,
+            location.pose.orientation.z,
+            location.pose.orientation.w
+        );
 
-        // Calculate velocity (simple finite difference)
-        float dt = 0.016f; // Assume ~60 FPS for now
-        controller.velocity = (controller.position - prevController.position) / dt;
+        // FILTER position and rotation using Kalman filters
+        controller.position = posFilter.Update(rawPosition);
+        controller.rotation = rotFilter.Update(rawRotation);
 
-        // Angular velocity (simplified)
-        // In practice, would use proper quaternion differentiation
-        controller.angularVelocity = Vector3::Zero();
+        // Store in history for velocity estimation
+        controller.timestamp = displayTime / 1000000000.0f;  // Convert nanoseconds to seconds
+        history.Push(controller);
+
+        // Calculate SMOOTH velocity from filtered history
+        if (history.Size() >= 2) {
+            const ControllerState& prev = history.Get(history.Size() - 2);
+            float dt = controller.timestamp - prev.timestamp;
+            if (dt > 0.001f) {  // At least 1ms
+                controller.velocity = (controller.position - prev.position) / dt;
+
+                // Estimate angular velocity from quaternion difference
+                // This is a simplified approach - proper method would use quaternion logarithm
+                Quaternion deltaRot = controller.rotation * prev.rotation.Conjugate();
+                Vector3 axis(deltaRot.x, deltaRot.y, deltaRot.z);
+                float angle = 2.0f * std::atan2(axis.Magnitude(), deltaRot.w);
+                if (axis.Magnitude() > 1e-6f) {
+                    controller.angularVelocity = axis.Normalized() * (angle / dt);
+                } else {
+                    controller.angularVelocity = Vector3::Zero();
+                }
+            }
+        }
 
     } else {
         controller.isActive = false;

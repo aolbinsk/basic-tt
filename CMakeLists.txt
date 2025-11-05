@@ -11,6 +11,13 @@ option(USE_VULKAN "Use Vulkan for rendering (otherwise OpenGL)" ON)
 
 # Find packages
 find_package(OpenXR REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+
+if(BUILD_TESTS)
+    find_package(GTest CONFIG REQUIRED)
+    enable_testing()
+endif()
 
 if(USE_VULKAN)
     find_package(Vulkan REQUIRED)
@@ -41,11 +48,14 @@ set(DOMAIN_SOURCES
     src/domain/physics/BallPhysicsRK4.cpp
     src/domain/physics/CollisionDetectionSystem.cpp
     src/domain/physics/CollisionResolutionSystem.cpp
+    src/domain/physics/RestitutionModel.cpp
     src/domain/logic/TableTennisSimulation.cpp
     src/domain/utilities/CircularBuffer.cpp
     src/domain/utilities/Vector3.cpp
     src/domain/utilities/Quaternion.cpp
     src/domain/utilities/Matrix4x4.cpp
+    src/domain/filters/KalmanFilterVector3.cpp
+    src/domain/filters/KalmanFilterQuaternion.cpp
 )
 
 set(INFRASTRUCTURE_SOURCES
@@ -58,6 +68,8 @@ set(INFRASTRUCTURE_SOURCES
     src/infrastructure/rendering/Material.cpp
     src/infrastructure/game/GameLoop.cpp
     src/infrastructure/game/SimulationBridge.cpp
+    src/infrastructure/utilities/Logger.cpp
+    src/infrastructure/utilities/ConfigManager.cpp
 )
 
 set(MAIN_SOURCES
@@ -77,12 +89,16 @@ if(USE_VULKAN)
         PRIVATE
         OpenXR::openxr_loader
         Vulkan::Vulkan
+        spdlog::spdlog
+        nlohmann_json::nlohmann_json
     )
 else()
     target_link_libraries(${PROJECT_NAME}
         PRIVATE
         OpenXR::openxr_loader
         OpenGL::GL
+        spdlog::spdlog
+        nlohmann_json::nlohmann_json
     )
 endif()
 
@@ -104,3 +120,8 @@ endif()
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
 )
+
+# Tests
+if(BUILD_TESTS)
+    add_subdirectory(tests)
+endif()

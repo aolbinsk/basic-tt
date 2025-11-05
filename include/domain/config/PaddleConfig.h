@@ -20,6 +20,7 @@ struct PaddleConfig {
     // Rubber properties
     float rubberThickness;      // Thickness of rubber on each side (meters)
     float rubberFriction;       // Rubber friction coefficient (higher than wood)
+    float rubberHardness;       // Sponge hardness 0-1 (0=soft 30°, 1=hard 50°)
 
     // Default values based on standard table tennis paddle
     PaddleConfig()
@@ -32,7 +33,8 @@ struct PaddleConfig {
           restitution(0.82f),           // Less bouncy than ball
           friction(0.6f),               // Wood friction
           rubberThickness(0.002f),      // 2mm rubber
-          rubberFriction(0.9f) {}       // High rubber friction
+          rubberFriction(0.9f),         // High rubber friction
+          rubberHardness(0.5f) {}       // Medium hardness (40 degrees)
 
     static PaddleConfig Default() {
         return PaddleConfig();

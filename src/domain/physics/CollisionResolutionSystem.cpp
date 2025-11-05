@@ -23,6 +23,9 @@ BallState CollisionResolutionSystem::ResolveCollision(
         return ballState;
     }
 
+    // Calculate impact speed for velocity-dependent restitution
+    float impactSpeed = collision.relativeVelocity.Magnitude();
+
     switch (collision.type) {
         case CollisionType::Paddle:
             if (paddle != nullptr) {
@@ -30,19 +33,25 @@ BallState CollisionResolutionSystem::ResolveCollision(
             }
             break;
 
-        case CollisionType::Table:
-            return ResolveStaticCollision(ballState, collision,
-                                         m_tableConfig.restitution,
-                                         m_tableConfig.friction);
+        case CollisionType::Table: {
+            float restitution = RestitutionModel::CalculateBallTableRestitution(impactSpeed);
+            return ResolveStaticCollision(ballState, collision, restitution, m_tableConfig.friction);
+        }
 
-        case CollisionType::Floor:
-            return ResolveStaticCollision(ballState, collision, 0.5f, 0.7f);
+        case CollisionType::Floor: {
+            float restitution = RestitutionModel::CalculateBallFloorRestitution(impactSpeed);
+            return ResolveStaticCollision(ballState, collision, restitution, 0.7f);
+        }
 
-        case CollisionType::Net:
-            return ResolveStaticCollision(ballState, collision, 0.3f, 0.8f);
+        case CollisionType::Net: {
+            float restitution = RestitutionModel::CalculateBallNetRestitution(impactSpeed);
+            return ResolveStaticCollision(ballState, collision, restitution, 0.8f);
+        }
 
-        case CollisionType::Wall:
-            return ResolveStaticCollision(ballState, collision, 0.8f, 0.3f);
+        case CollisionType::Wall: {
+            float restitution = RestitutionModel::CalculateBallWallRestitution(impactSpeed);
+            return ResolveStaticCollision(ballState, collision, restitution, 0.3f);
+        }
 
         default:
             break;
@@ -67,8 +76,10 @@ BallState CollisionResolutionSystem::ResolvePaddleCollision(
     // Only resolve if approaching
     if (vn >= 0) return ballState;
 
-    // Combined restitution
-    float restitution = (m_ballConfig.restitution + m_paddleConfig.restitution) * 0.5f;
+    // Velocity-dependent restitution for paddle
+    float impactSpeed = std::abs(vn);
+    float restitution = RestitutionModel::CalculateBallPaddleRestitution(
+        impactSpeed, m_paddleConfig.rubberHardness);
 
     // Calculate normal impulse
     float invMassBall = 1.0f / m_ballConfig.mass;

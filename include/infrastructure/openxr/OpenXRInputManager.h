@@ -2,6 +2,9 @@
 
 #include <openxr/openxr.h>
 #include "../../domain/entities/ControllerState.h"
+#include "../../domain/filters/KalmanFilterVector3.h"
+#include "../../domain/filters/KalmanFilterQuaternion.h"
+#include "../../domain/utilities/CircularBuffer.h"
 #include <map>
 
 namespace BasicTT {
@@ -44,6 +47,16 @@ private:
     ControllerState m_rightController;
     ControllerState m_prevLeftController;
     ControllerState m_prevRightController;
+
+    // Kalman filters for smooth tracking
+    KalmanFilterVector3 m_leftPosFilter;
+    KalmanFilterVector3 m_rightPosFilter;
+    KalmanFilterQuaternion m_leftRotFilter;
+    KalmanFilterQuaternion m_rightRotFilter;
+
+    // History buffers for velocity estimation
+    CircularBuffer<ControllerState> m_leftHistory;
+    CircularBuffer<ControllerState> m_rightHistory;
 };
 
 } // namespace BasicTT

@@ -117,14 +117,38 @@ Vector3 BallPhysicsRK4::CalculateDragForce(const Vector3& velocity) const {
 }
 
 Vector3 BallPhysicsRK4::CalculateMagnusForce(const Vector3& velocity, const Vector3& spin) const {
-    if (velocity.SqrMagnitude() < 1e-6f || spin.SqrMagnitude() < 1e-6f) {
+    // Improved Magnus force calculation (same as Verlet version)
+    float speed = velocity.Magnitude();
+    float spinRate = spin.Magnitude();
+
+    if (speed < 0.1f || spinRate < 1.0f) {
         return Vector3::Zero();
     }
 
-    Vector3 magnusDir = Vector3::Cross(spin, velocity);
-    float magnusMagnitude = m_ballConfig.magnusCoefficient;
+    // Dimensionless spin parameter
+    float spinParameter = (spinRate * m_ballConfig.radius) / speed;
 
-    return magnusDir * magnusMagnitude;
+    // Magnus coefficient varies non-linearly
+    float Cm;
+    if (spinParameter < 0.5f) {
+        Cm = 1.0f * spinParameter;
+    } else if (spinParameter < 4.0f) {
+        Cm = 0.5f * (1.0f - std::exp(-spinParameter));
+    } else {
+        Cm = 0.5f;
+    }
+
+    Vector3 magnusDir = Vector3::Cross(spin, velocity);
+    float magnusDirMag = magnusDir.Magnitude();
+
+    if (magnusDirMag < 1e-6f) return Vector3::Zero();
+
+    magnusDir = magnusDir / magnusDirMag;
+
+    float area = 3.14159f * m_ballConfig.radius * m_ballConfig.radius;
+    float magnusMag = Cm * 0.5f * m_physicsConfig.airDensity * area * speed * speed;
+
+    return magnusDir * magnusMag;
 }
 
 } // namespace BasicTT

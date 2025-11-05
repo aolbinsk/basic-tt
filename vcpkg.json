@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "basictt-openxr",
+  "version": "0.1.0",
+  "description": "Table Tennis VR game with OpenXR",
+  "dependencies": [
+    "openxr-loader",
+    "spdlog",
+    "nlohmann-json",
+    "gtest"
+  ],
+  "builtin-baseline": "latest"
+}

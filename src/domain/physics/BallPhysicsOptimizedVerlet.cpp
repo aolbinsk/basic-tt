@@ -91,17 +91,48 @@ Vector3 BallPhysicsOptimizedVerlet::CalculateDragForce(const Vector3& velocity) 
 
 Vector3 BallPhysicsOptimizedVerlet::CalculateMagnusForce(const Vector3& velocity,
                                                          const Vector3& spin) const {
-    // F_magnus = Cm * (ω × v)
-    // Magnus force perpendicular to both velocity and spin axis
+    // Improved Magnus force calculation with velocity and spin dependence
+    // F_magnus = Cm(S) * 0.5 * ρ * A * v² * (ω × v) / |ω × v|
+    // where S = (ω * r) / v is the dimensionless spin parameter
 
-    if (velocity.SqrMagnitude() < 1e-6f || spin.SqrMagnitude() < 1e-6f) {
+    float speed = velocity.Magnitude();
+    float spinRate = spin.Magnitude();
+
+    // No Magnus force if not moving or not spinning
+    if (speed < 0.1f || spinRate < 1.0f) {
         return Vector3::Zero();
     }
 
-    Vector3 magnusDir = Vector3::Cross(spin, velocity);
-    float magnusMagnitude = m_ballConfig.magnusCoefficient;
+    // Dimensionless spin parameter: S = (ω * r) / v
+    float spinParameter = (spinRate * m_ballConfig.radius) / speed;
 
-    return magnusDir * magnusMagnitude;
+    // Magnus coefficient varies non-linearly with spin parameter
+    // Based on experimental data for spinning spheres
+    float Cm;
+    if (spinParameter < 0.5f) {
+        // Linear regime at low spin rates
+        Cm = 1.0f * spinParameter;
+    } else if (spinParameter < 4.0f) {
+        // Non-linear transition regime
+        Cm = 0.5f * (1.0f - std::exp(-spinParameter));
+    } else {
+        // Saturation at high spin rates
+        Cm = 0.5f;
+    }
+
+    // Calculate Magnus direction and magnitude
+    Vector3 magnusDir = Vector3::Cross(spin, velocity);
+    float magnusDirMag = magnusDir.Magnitude();
+
+    if (magnusDirMag < 1e-6f) return Vector3::Zero();
+
+    magnusDir = magnusDir / magnusDirMag;  // Normalize direction
+
+    // F_magnus = Cm * 0.5 * ρ * A * v²
+    float area = 3.14159f * m_ballConfig.radius * m_ballConfig.radius;
+    float magnusMag = Cm * 0.5f * m_physicsConfig.airDensity * area * speed * speed;
+
+    return magnusDir * magnusMag;
 }
 
 } // namespace BasicTT
